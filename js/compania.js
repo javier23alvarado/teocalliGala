@@ -1250,6 +1250,11 @@ function setupAgendaModule() {
     eventTypeSelect.addEventListener("change", triggerFormFieldsVisibility);
   }
 
+  const eventIsRecurring = document.getElementById("event-is-recurring");
+  if (eventIsRecurring) {
+    eventIsRecurring.addEventListener("change", handleRecurrenceCheckboxToggle);
+  }
+
   if (btnEditEvent) {
     btnEditEvent.addEventListener("click", () => {
       if (selectedEvent) {
@@ -1549,10 +1554,40 @@ function populateDancersCheckboxes() {
   });
 }
 
+function handleRecurrenceCheckboxToggle() {
+  const eventIsRecurring = document.getElementById("event-is-recurring");
+  const recurrenceFields = document.getElementById("event-recurrence-fields");
+  const dateSingleGroup = document.getElementById("event-date-single-group");
+  const dateInput = document.getElementById("event-date-input");
+  const startDateInput = document.getElementById("event-start-date");
+  const endDateInput = document.getElementById("event-end-date");
+  
+  const isRecurring = eventIsRecurring && eventIsRecurring.checked;
+  
+  if (isRecurring) {
+    if (recurrenceFields) recurrenceFields.style.display = "block";
+    if (dateSingleGroup) dateSingleGroup.style.display = "none";
+    if (dateInput) dateInput.removeAttribute("required");
+    if (startDateInput) startDateInput.setAttribute("required", "true");
+    if (endDateInput) endDateInput.setAttribute("required", "true");
+  } else {
+    if (recurrenceFields) recurrenceFields.style.display = "none";
+    if (dateSingleGroup) dateSingleGroup.style.display = "block";
+    if (dateInput) dateInput.setAttribute("required", "true");
+    if (startDateInput) startDateInput.removeAttribute("required");
+    if (endDateInput) endDateInput.removeAttribute("required");
+  }
+}
+
 function openAgendaFormModal(dateString = "", eventToEdit = null) {
   if (!agendaModal || !agendaModalTitle || !agendaEventForm) return;
   
   agendaEventForm.reset();
+  
+  // Limpiar checkboxes de recurrencia y bailarines convocados
+  document.querySelectorAll('input[name="recurrence-days"]').forEach(cb => cb.checked = false);
+  const eventIsRecurring = document.getElementById("event-is-recurring");
+  if (eventIsRecurring) eventIsRecurring.checked = false;
   
   const eventIdInput = document.getElementById("event-id");
   const eventTypeSelect = document.getElementById("event-type-select");
@@ -1593,12 +1628,22 @@ function openAgendaFormModal(dateString = "", eventToEdit = null) {
         if (cb) cb.checked = true;
       });
     }
+    
+    // Ocultar opción de recurrencia en edición de evento individual
+    const groupRecurrence = document.getElementById("event-group-recurrence");
+    if (groupRecurrence) groupRecurrence.style.display = "none";
   } else {
     agendaModalTitle.textContent = "Crear Evento";
     if (eventIdInput) eventIdInput.value = "";
     if (eventDateInput && dateString) eventDateInput.value = dateString;
+    
+    const groupRecurrence = document.getElementById("event-group-recurrence");
+    if (groupRecurrence && eventTypeSelect.value === "ensayo") {
+      groupRecurrence.style.display = "block";
+    }
   }
   
+  handleRecurrenceCheckboxToggle();
   triggerFormFieldsVisibility();
   agendaModal.style.display = "flex";
 }
@@ -1610,22 +1655,30 @@ function triggerFormFieldsVisibility() {
   const groupDetails = document.getElementById("event-group-details");
   const groupCost = document.getElementById("event-group-cost");
   const groupDancers = document.getElementById("event-group-dancers");
+  const groupRecurrence = document.getElementById("event-group-recurrence");
+  const eventIsRecurring = document.getElementById("event-is-recurring");
+  const eventIdInput = document.getElementById("event-id");
   
   if (type === "ensayo") {
     if (groupCompany) groupCompany.style.display = "block";
     if (groupDetails) groupDetails.style.display = "none";
     if (groupCost) groupCost.style.display = "none";
     if (groupDancers) groupDancers.style.display = "none";
-  } else if (type === "presentacion") {
-    if (groupCompany) groupCompany.style.display = "none";
+    // Solo permitir recurrencia al crear un nuevo ensayo, no al editar uno existente
+    if (groupRecurrence) {
+      groupRecurrence.style.display = (!eventIdInput || !eventIdInput.value) ? "block" : "none";
+    }
+  } else {
+    if (groupCompany) groupCompany.style.display = (type === "taller" ? "block" : "none");
     if (groupDetails) groupDetails.style.display = "block";
-    if (groupCost) groupCost.style.display = "none";
-    if (groupDancers) groupDancers.style.display = "block";
-  } else if (type === "taller") {
-    if (groupCompany) groupCompany.style.display = "block";
-    if (groupDetails) groupDetails.style.display = "block";
-    if (groupCost) groupCost.style.display = "block";
-    if (groupDancers) groupDancers.style.display = "none";
+    if (groupCost) groupCost.style.display = (type === "taller" ? "block" : "none");
+    if (groupDancers) groupDancers.style.display = (type === "presentacion" ? "block" : "none");
+    
+    if (groupRecurrence) groupRecurrence.style.display = "none";
+    if (eventIsRecurring) {
+      eventIsRecurring.checked = false;
+      handleRecurrenceCheckboxToggle();
+    }
   }
 }
 
@@ -1642,18 +1695,19 @@ async function handleAgendaFormSubmit(e) {
   const eventDescInput = document.getElementById("event-desc-input");
   const eventCostInput = document.getElementById("event-cost-input");
   
+  const eventIsRecurring = document.getElementById("event-is-recurring");
   const id = eventIdInput ? eventIdInput.value : "";
   const tipo = eventTypeSelect.value;
   const titulo = eventTitleInput.value.trim();
-  const fecha = eventDateInput.value;
   const hora = eventTimeInput.value;
+  
+  const isRecurring = eventIsRecurring && eventIsRecurring.checked && tipo === "ensayo" && !id;
   
   showLoading(true);
   
   const eventData = {
     tipo,
     titulo,
-    fecha,
     hora,
     creadoPor: currentUserProfile.uid,
     creadoEn: isDemoMode ? new Date().toISOString() : serverTimestamp()
@@ -1677,46 +1731,126 @@ async function handleAgendaFormSubmit(e) {
     eventData.invitados = Array.from(checkboxes).map(cb => cb.value);
   }
   
-  if (isDemoMode) {
-    setTimeout(() => {
-      let demoAgenda = JSON.parse(localStorage.getItem("teocalli_demo_agenda") || "[]");
-      
-      if (id) {
-        const idx = demoAgenda.findIndex(evt => evt.id === id);
-        if (idx !== -1) {
-          demoAgenda[idx] = { id, ...eventData };
-          showAlert("Evento actualizado con éxito.", "success");
-        }
-      } else {
-        const newId = "demo-event-" + Math.random().toString(36).substr(2, 9);
-        demoAgenda.push({ id: newId, ...eventData });
-        showAlert("Evento registrado con éxito.", "success");
-      }
-      
-      localStorage.setItem("teocalli_demo_agenda", JSON.stringify(demoAgenda));
-      agendaEvents = demoAgenda;
-      
-      if (agendaModal) agendaModal.style.display = "none";
-      renderCalendar();
-      updateReminders();
+  if (isRecurring) {
+    const startDateVal = document.getElementById("event-start-date").value;
+    const endDateVal = document.getElementById("event-end-date").value;
+    
+    if (!startDateVal || !endDateVal) {
       showLoading(false);
-    }, 500);
+      showAlert("Por favor selecciona las fechas de inicio y fin para la recurrencia.");
+      return;
+    }
+    
+    const start = new Date(startDateVal + "T00:00:00");
+    const end = new Date(endDateVal + "T00:00:00");
+    
+    if (start > end) {
+      showLoading(false);
+      showAlert("La fecha de inicio no puede ser posterior a la fecha de fin.");
+      return;
+    }
+    
+    const checkedDays = Array.from(document.querySelectorAll('input[name="recurrence-days"]:checked')).map(cb => Number(cb.value));
+    
+    const datesToCreate = [];
+    let current = new Date(start);
+    while (current <= end) {
+      const dayOfWeek = current.getDay();
+      if (checkedDays.length === 0 || checkedDays.includes(dayOfWeek)) {
+        datesToCreate.push(current.toISOString().split("T")[0]);
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    
+    if (datesToCreate.length === 0) {
+      showLoading(false);
+      showAlert("Ningún día de la semana seleccionado coincide con el rango de fechas programado.");
+      return;
+    }
+    
+    if (isDemoMode) {
+      setTimeout(() => {
+        let demoAgenda = JSON.parse(localStorage.getItem("teocalli_demo_agenda") || "[]");
+        datesToCreate.forEach(dateStr => {
+          const newId = "demo-event-" + Math.random().toString(36).substr(2, 9);
+          demoAgenda.push({ id: newId, ...eventData, fecha: dateStr });
+        });
+        localStorage.setItem("teocalli_demo_agenda", JSON.stringify(demoAgenda));
+        agendaEvents = demoAgenda;
+        
+        if (agendaModal) agendaModal.style.display = "none";
+        renderCalendar();
+        updateReminders();
+        showLoading(false);
+        showAlert(`Se registraron ${datesToCreate.length} ensayos recurrentes con éxito.`, "success");
+      }, 500);
+    } else {
+      try {
+        const promises = datesToCreate.map(dateStr => {
+          return addDoc(collection(db, "agenda"), { ...eventData, fecha: dateStr });
+        });
+        await Promise.all(promises);
+        
+        if (agendaModal) agendaModal.style.display = "none";
+        showLoading(false);
+        showAlert(`Se registraron ${datesToCreate.length} ensayos recurrentes con éxito.`, "success");
+      } catch (error) {
+        showLoading(false);
+        console.error("Error al guardar ensayos recurrentes:", error);
+        showAlert("Error al guardar ensayos recurrentes: " + error.message);
+      }
+    }
   } else {
-    try {
-      if (id) {
-        await updateDoc(doc(db, "agenda", id), eventData);
-        showAlert("Evento actualizado con éxito.", "success");
-      } else {
-        await addDoc(collection(db, "agenda"), eventData);
-        showAlert("Evento registrado con éxito.", "success");
+    // Evento único o edición
+    const fecha = eventDateInput.value;
+    if (!fecha) {
+      showLoading(false);
+      showAlert("Por favor selecciona una fecha para el evento.");
+      return;
+    }
+    eventData.fecha = fecha;
+    
+    if (isDemoMode) {
+      setTimeout(() => {
+        let demoAgenda = JSON.parse(localStorage.getItem("teocalli_demo_agenda") || "[]");
+        
+        if (id) {
+          const idx = demoAgenda.findIndex(evt => evt.id === id);
+          if (idx !== -1) {
+            demoAgenda[idx] = { id, ...eventData };
+            showAlert("Evento actualizado con éxito.", "success");
+          }
+        } else {
+          const newId = "demo-event-" + Math.random().toString(36).substr(2, 9);
+          demoAgenda.push({ id: newId, ...eventData });
+          showAlert("Evento registrado con éxito.", "success");
+        }
+        
+        localStorage.setItem("teocalli_demo_agenda", JSON.stringify(demoAgenda));
+        agendaEvents = demoAgenda;
+        
+        if (agendaModal) agendaModal.style.display = "none";
+        renderCalendar();
+        updateReminders();
+        showLoading(false);
+      }, 500);
+    } else {
+      try {
+        if (id) {
+          await updateDoc(doc(db, "agenda", id), eventData);
+          showAlert("Evento actualizado con éxito.", "success");
+        } else {
+          await addDoc(collection(db, "agenda"), eventData);
+          showAlert("Evento registrado con éxito.", "success");
+        }
+        
+        if (agendaModal) agendaModal.style.display = "none";
+        showLoading(false);
+      } catch (error) {
+        showLoading(false);
+        console.error("Error al guardar evento:", error);
+        showAlert("Error al guardar evento: " + error.message);
       }
-      
-      if (agendaModal) agendaModal.style.display = "none";
-      showLoading(false);
-    } catch (error) {
-      showLoading(false);
-      console.error("Error al guardar evento:", error);
-      showAlert("Error al guardar evento: " + error.message);
     }
   }
 }

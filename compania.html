@@ -498,13 +498,49 @@
           </div>
 
           <div class="form-row-2">
-            <div class="form-group">
+            <div class="form-group" id="event-date-single-group">
               <label class="form-label" for="event-date-input">Fecha</label>
               <input type="date" id="event-date-input" class="form-input" required>
             </div>
             <div class="form-group">
               <label class="form-label" for="event-time-input">Horario / Hora de Inicio</label>
               <input type="time" id="event-time-input" class="form-input" required>
+            </div>
+          </div>
+
+          <!-- Rango de fechas para Ensayos (Recurrente) -->
+          <div id="event-group-recurrence" style="display: none; margin-bottom: 16px;">
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label class="checkbox-item" style="font-weight: 600; cursor: pointer;">
+                <input type="checkbox" id="event-is-recurring">
+                <span>¿Es un ensayo recurrente en un período?</span>
+              </label>
+            </div>
+            
+            <div id="event-recurrence-fields" style="display: none;">
+              <div class="form-row-2" style="margin-bottom: 12px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" for="event-start-date">Fecha Inicio</label>
+                  <input type="date" id="event-start-date" class="form-input">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" for="event-end-date">Fecha Fin</label>
+                  <input type="date" id="event-end-date" class="form-input">
+                </div>
+              </div>
+              
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Días de la semana (por defecto todos)</label>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; background-color: var(--bg-site); padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                  <label class="checkbox-item" style="font-size: 12px; cursor: pointer;"><input type="checkbox" name="recurrence-days" value="1"> Lun</label>
+                  <label class="checkbox-item" style="font-size: 12px; cursor: pointer;"><input type="checkbox" name="recurrence-days" value="2"> Mar</label>
+                  <label class="checkbox-item" style="font-size: 12px; cursor: pointer;"><input type="checkbox" name="recurrence-days" value="3"> Mié</label>
+                  <label class="checkbox-item" style="font-size: 12px; cursor: pointer;"><input type="checkbox" name="recurrence-days" value="4"> Jue</label>
+                  <label class="checkbox-item" style="font-size: 12px; cursor: pointer;"><input type="checkbox" name="recurrence-days" value="5"> Vie</label>
+                  <label class="checkbox-item" style="font-size: 12px; cursor: pointer;"><input type="checkbox" name="recurrence-days" value="6"> Sáb</label>
+                  <label class="checkbox-item" style="font-size: 12px; cursor: pointer;"><input type="checkbox" name="recurrence-days" value="0"> Dom</label>
+                </div>
+              </div>
             </div>
           </div>
 
