@@ -5,17 +5,20 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/9.23.0/firebase
 
 // TODO: Reemplazar con las credenciales de tu proyecto de Firebase
 const firebaseConfig = {
-  apiKey: "TU_API_KEY_AQUI",
-  authDomain: "TU_AUTH_DOMAIN_AQUI",
-  projectId: "TU_PROJECT_ID_AQUI",
-  storageBucket: "TU_STORAGE_BUCKET_AQUI",
-  messagingSenderId: "TU_MESSAGING_SENDER_ID_AQUI",
-  appId: "TU_APP_ID_AQUI"
+  apiKey: "AIzaSyA2fBMU5IpyNU1UqX8pV5wRMg_ghtyJqoA",
+  authDomain: "teocalli-sabia-de-mi-tierra.firebaseapp.com",
+  databaseURL: "https://teocalli-sabia-de-mi-tierra-default-rtdb.firebaseio.com",
+  projectId: "teocalli-sabia-de-mi-tierra",
+  storageBucket: "teocalli-sabia-de-mi-tierra.firebasestorage.app",
+  messagingSenderId: "283561336136",
+  appId: "1:283561336136:web:c3955ba2688dbbc713e77d",
+  measurementId: "G-DGR1VXTXNL"
 };
 
 // Inicializar Firebase
 const app = initializeApp(firebaseConfig);
 
-// Exportar servicios de Auth y Firestore
+// Exportar servicios de Auth, Firestore y Configuración
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export { firebaseConfig };

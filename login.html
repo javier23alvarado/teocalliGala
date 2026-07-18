@@ -12,9 +12,7 @@
   <div class="login-card">
     <div class="login-header">
       <a href="/" style="display: inline-block; text-decoration: none; margin-bottom: 12px;">
-        <svg class="login-logo" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width: 52px; height: 52px;">
-          <path d="M12 2L14.39 6.83L19.7 7.6L15.85 11.35L16.76 16.64L12 14.14L7.24 16.64L8.15 11.35L4.3 7.6L9.61 6.83L12 2Z" fill="#D11A5B"/>
-        </svg>
+        <img src="teocalli.jfif" alt="Logo Teocalli" style="width: 72px; height: 72px; object-fit: contain; border-radius: 8px;">
       </a>
       <h2 class="login-title text-serif">Acceso Compañía</h2>
       <p class="login-subtitle">Ingresa para acceder a tu panel de control</p>
@@ -33,6 +31,23 @@
         <input type="password" id="login-password" class="form-input" required placeholder="••••••••">
       </div>
       <button type="submit" class="btn btn-primary btn-block" id="btn-login-submit" style="margin-top: 10px;">Ingresar</button>
+    </form>
+    
+    <!-- Formulario para Cambio Obligatorio de Contraseña (Primer Inicio de Sesión) -->
+    <form id="force-password-form" style="display: none;">
+      <p class="login-subtitle" style="margin-bottom: 20px; color: var(--primary); font-size: 14px; line-height: 1.5; text-align: center;">
+        <strong>🔑 Cambio de Contraseña Requerido</strong><br>
+        Esta es la primera vez que ingresas al sistema. Para mayor seguridad, debes actualizar tu contraseña por una nueva contraseña personal.
+      </p>
+      <div class="form-group">
+        <label class="form-label" for="force-new-password">Nueva Contraseña</label>
+        <input type="password" id="force-new-password" class="form-input" required placeholder="Mínimo 6 caracteres" minlength="6">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="force-confirm-password">Confirmar Nueva Contraseña</label>
+        <input type="password" id="force-confirm-password" class="form-input" required placeholder="Confirma la contraseña" minlength="6">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top: 10px;">Establecer Contraseña e Ingresar</button>
     </form>
     
     <div class="login-back-btn">

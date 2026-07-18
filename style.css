@@ -1007,9 +1007,22 @@ body {
   }
   
   /* Dashboard adaptado para móvil */
+  #btn-menu-toggle {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
   .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
     transform: translateX(-100%);
     width: 260px;
+    height: 100vh;
+    z-index: 2000;
+    box-shadow: var(--shadow-lg);
   }
   
   .sidebar.active {
@@ -1023,5 +1036,14 @@ body {
   
   .form-row-2 {
     grid-template-columns: 1fr;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .users-management-grid {
+    grid-template-columns: 1fr !important;
   }
 }

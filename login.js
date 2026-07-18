@@ -132,6 +132,51 @@ loginForm.addEventListener("submit", async (e) => {
           return;
         }
 
+        // --- INTERCEPTOR DE CONTRASEÑA OBLIGATORIA MODO DEMO ---
+        if (user.requiereCambioPassword === true) {
+          showLoading(false);
+          loginForm.style.display = "none";
+          const forcePasswordForm = document.getElementById("force-password-form");
+          const forceNewPasswordInput = document.getElementById("force-new-password");
+          const forceConfirmPasswordInput = document.getElementById("force-confirm-password");
+          
+          if (forcePasswordForm) {
+            forcePasswordForm.style.display = "block";
+            
+            forcePasswordForm.addEventListener("submit", (e) => {
+              e.preventDefault();
+              const newPassword = forceNewPasswordInput.value;
+              const confirmPassword = forceConfirmPasswordInput.value;
+              
+              if (newPassword !== confirmPassword) {
+                showAlert("Las contraseñas no coinciden.");
+                return;
+              }
+              
+              showLoading(true);
+              setTimeout(() => {
+                user.requiereCambioPassword = false;
+                const idx = demoUsers.findIndex(u => u.uid === user.uid);
+                if (idx !== -1) {
+                  demoUsers[idx] = user;
+                  localStorage.setItem("teocalli_demo_users", JSON.stringify(demoUsers));
+                }
+                
+                sessionStorage.setItem("demo_active_user", JSON.stringify(user));
+                sessionStorage.setItem("uid", user.uid);
+                sessionStorage.setItem("id_rol", user.id_rol);
+                sessionStorage.setItem("nombre", user.nombre);
+                sessionStorage.setItem("id_compania", user.id_compania);
+                
+                showLoading(false);
+                const redirectPath = window.location.pathname.endsWith(".html") ? "compania.html" : "/compania";
+                window.location.href = redirectPath;
+              }, 600);
+            });
+          }
+          return;
+        }
+
         // Guardar sesión en sessionStorage
         sessionStorage.setItem("demo_active_user", JSON.stringify(user));
         sessionStorage.setItem("uid", user.uid);
@@ -179,6 +224,58 @@ loginForm.addEventListener("submit", async (e) => {
           await signOut(auth);
           showLoading(false);
           showAlert("Acceso denegado. Su cuenta se encuentra inactiva.");
+          return;
+        }
+
+        // --- INTERCEPTOR DE CONTRASEÑA OBLIGATORIA MODO PRODUCCIÓN REAL ---
+        if (userData.requiereCambioPassword === true) {
+          showLoading(false);
+          loginForm.style.display = "none";
+          const forcePasswordForm = document.getElementById("force-password-form");
+          const forceNewPasswordInput = document.getElementById("force-new-password");
+          const forceConfirmPasswordInput = document.getElementById("force-confirm-password");
+          
+          if (forcePasswordForm) {
+            forcePasswordForm.style.display = "block";
+            
+            forcePasswordForm.addEventListener("submit", async (e) => {
+              e.preventDefault();
+              const newPassword = forceNewPasswordInput.value;
+              const confirmPassword = forceConfirmPasswordInput.value;
+              
+              if (newPassword !== confirmPassword) {
+                showAlert("Las contraseñas no coinciden.");
+                return;
+              }
+              
+              showLoading(true);
+              try {
+                // Actualizar la contraseña en Firebase Auth
+                const { updatePassword } = await import("https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js");
+                await updatePassword(user, newPassword);
+                
+                // Actualizar Firestore para desactivar requiereCambioPassword
+                const { updateDoc } = await import("https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js");
+                await updateDoc(userDocRef, { requiereCambioPassword: false });
+                
+                // Guardar datos de sesión
+                sessionStorage.setItem("uid", user.uid);
+                sessionStorage.setItem("id_rol", userData.id_rol);
+                sessionStorage.setItem("nombre", userData.nombre);
+                sessionStorage.setItem("id_compania", userData.id_compania);
+                
+                showLoading(false);
+                
+                // Redirigir al panel
+                const redirectPath = window.location.pathname.endsWith(".html") ? "compania.html" : "/compania";
+                window.location.href = redirectPath;
+              } catch (updateError) {
+                showLoading(false);
+                console.error("Error al forzar cambio de contraseña:", updateError);
+                showAlert("Error al establecer la contraseña: " + updateError.message);
+              }
+            });
+          }
           return;
         }
 

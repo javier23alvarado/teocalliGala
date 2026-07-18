@@ -1,5 +1,5 @@
-// compania.js - Panel de control, orquestación por roles y CRUD normalizado para Compañía Teocalli
-import { auth, db } from "./firebase-config.js";
+// compania.js - Panel de control, orquestación por roles, CRUD y perfil unificado para Compañía Teocalli
+import { auth, db, firebaseConfig } from "./firebase-config.js";
 
 // Firebase Auth & Firestore v9.23.0 modular CDN Imports
 import { 
@@ -16,8 +16,14 @@ import {
   updateDoc,
   deleteDoc,
   getDocs,
-  serverTimestamp
+  serverTimestamp,
+  query,
+  where,
+  setDoc
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+// Redirección dinámica compatible con cleanUrls y archivos locales (.html)
+const LOGIN_REDIRECT = window.location.pathname.endsWith(".html") ? "login.html" : "/login";
 
 // Elementos del DOM
 const loadingOverlay = document.getElementById("loading-overlay");
@@ -36,13 +42,17 @@ const welcomeRoleMessage = document.getElementById("welcome-role-message");
 const welcomeRoleCard = document.getElementById("welcome-role-card");
 
 // Navegación Sidebar
-const navDbGeneral = document.getElementById("nav-db-general");
-const navDbUsers = document.getElementById("nav-db-users");
+const navDbGeneral = document.getElementById("btn-resumen");
+const navDbUsers = document.getElementById("btn-users");
 const sidebarOptUsers = document.getElementById("sidebar-opt-users");
+const navDbProfile = document.getElementById("btn-perfil");
+const btnMenuToggle = document.getElementById("btn-menu-toggle");
+const sidebar = document.querySelector(".sidebar");
 
 // Secciones del Dashboard
 const dbSectionGeneral = document.getElementById("db-section-general");
 const dbSectionUsers = document.getElementById("db-section-users");
+const dbSectionProfile = document.getElementById("db-section-profile");
 
 // Métricas
 const metricTotalDancers = document.getElementById("metric-total-dancers");
@@ -50,10 +60,12 @@ const metricActiveDancers = document.getElementById("metric-active-dancers");
 
 // Formulario de Registro/Edición CRUD
 const newUserForm = document.getElementById("new-user-form");
+const userRegistrationCard = document.getElementById("user-registration-card");
 const regUidInput = document.getElementById("reg-uid");
 const regNameInput = document.getElementById("reg-name");
 const regAliasInput = document.getElementById("reg-alias");
 const regDobInput = document.getElementById("reg-dob");
+const regSexoSelect = document.getElementById("reg-sexo");
 const regCompanySelect = document.getElementById("reg-company");
 const regEmailInput = document.getElementById("reg-email");
 const regPhoneInput = document.getElementById("reg-phone");
@@ -64,6 +76,11 @@ const btnRegisterSubmit = document.getElementById("btn-register-submit");
 const btnCancelEdit = document.getElementById("btn-cancel-edit");
 const formActionTitle = document.getElementById("form-action-title");
 
+// Elementos de Filtros
+const filterCompany = document.getElementById("filter-company");
+const filterGender = document.getElementById("filter-gender");
+const filterAge = document.getElementById("filter-age");
+
 // Tabla CRUD
 const usersTableBody = document.getElementById("users-table-body");
 const usersCountBadge = document.getElementById("users-count-badge");
@@ -72,6 +89,7 @@ const usersCountBadge = document.getElementById("users-count-badge");
 let currentUserProfile = null;
 let unsubscribeUsers = null;
 let companiesCatalog = []; // Catálogo dinámico de compañías
+let currentUsersData = []; // Datos completos cargados para filtrado local
 
 // Catálogo de roles estático para formatear visualizaciones
 const rolesCatalog = {
@@ -81,7 +99,48 @@ const rolesCatalog = {
 };
 
 // ====================================================
-// DETECTAR MODO DEMOSTRACIÓN (Para pruebas locales sin configurar Firebase)
+// UTILERÍAS GENERALES
+// ====================================================
+function showLoading(show) {
+  if (loadingOverlay) {
+    loadingOverlay.style.display = show ? "flex" : "none";
+  }
+}
+
+function showAlert(message, type = "danger") {
+  if (dbAlert) {
+    dbAlert.innerHTML = message;
+    dbAlert.className = `alert alert-${type}`;
+    dbAlert.style.display = "block";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setTimeout(() => {
+      dbAlert.style.display = "none";
+    }, 6000);
+  } else {
+    alert(message);
+  }
+}
+
+function closeSidebarOnMobile() {
+  if (sidebar && sidebar.classList.contains("active")) {
+    sidebar.classList.remove("active");
+  }
+}
+
+function calculateAge(dobString) {
+  if (!dobString) return "--";
+  const today = new Date();
+  const birthDate = new Date(dobString);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age >= 0 ? age : 0;
+}
+
+// ====================================================
+// DETECTAR MODO DEMOSTRACIÓN (Local Storage)
 // ====================================================
 let isDemoMode = false;
 try {
@@ -112,7 +171,7 @@ if (isDemoMode) {
   // Comprobar sesión
   const demoSession = sessionStorage.getItem("demo_active_user");
   if (!demoSession) {
-    window.location.href = "/login";
+    window.location.href = LOGIN_REDIRECT;
   } else {
     currentUserProfile = JSON.parse(demoSession);
     initializeDashboard(currentUserProfile);
@@ -123,7 +182,7 @@ if (isDemoMode) {
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
       // Route Guard: Redirección inmediata a login
-      window.location.href = "/login";
+      window.location.href = LOGIN_REDIRECT;
     } else {
       try {
         const userDocRef = doc(db, "usuarios", user.uid);
@@ -136,7 +195,7 @@ if (isDemoMode) {
           if (userData.activo !== true) {
             await signOut(auth);
             sessionStorage.clear();
-            window.location.href = "/login";
+            window.location.href = LOGIN_REDIRECT;
             return;
           }
 
@@ -148,11 +207,11 @@ if (isDemoMode) {
         } else {
           await signOut(auth);
           sessionStorage.clear();
-          window.location.href = "/login";
+          window.location.href = LOGIN_REDIRECT;
         }
       } catch (error) {
         console.error("Error al recuperar sesión de base de datos:", error);
-        window.location.href = "/login";
+        window.location.href = LOGIN_REDIRECT;
       }
     }
   });
@@ -198,6 +257,10 @@ async function loadCompaniesCatalog() {
 // ORQUESTACIÓN DE RENDERIZADO Y CONTROL DE ACCESO
 // ====================================================
 function initializeDashboard(profile) {
+  // Mostrar contenedor principal al verificar sesión
+  const dashboardWrapper = document.querySelector(".dashboard-wrapper");
+  if (dashboardWrapper) dashboardWrapper.style.display = "flex";
+
   // Rellenar navbar superior y avatar
   profileName.textContent = profile.nombre;
   
@@ -215,6 +278,9 @@ function initializeDashboard(profile) {
 
   // Poblar dropdown de compañías en el formulario
   populateCompanyDropdown();
+
+  // Configurar las acciones y carga de la vista del perfil
+  setupUserProfile(profile);
 
   // Orquestación estricta por roles
   if (profile.id_rol === "super_admin") {
@@ -249,12 +315,47 @@ function initializeDashboard(profile) {
 
 // Cargar opciones en el dropdown
 function populateCompanyDropdown() {
+  if (!regCompanySelect) return;
   regCompanySelect.innerHTML = `<option value="" disabled selected>Selecciona compañía</option>`;
   companiesCatalog.forEach(comp => {
     const opt = document.createElement("option");
     opt.value = comp.id;
     opt.textContent = comp.nombre;
     regCompanySelect.appendChild(opt);
+  });
+}
+
+// ====================================================
+// NAVEGADORES GLOBALES E INTERACTIVIDAD MÓVIL
+// ====================================================
+if (navDbGeneral) {
+  navDbGeneral.addEventListener("click", (e) => {
+    e.preventDefault();
+    switchDbSection("general");
+    closeSidebarOnMobile();
+  });
+}
+
+if (navDbProfile) {
+  navDbProfile.addEventListener("click", (e) => {
+    e.preventDefault();
+    switchDbSection("profile");
+    closeSidebarOnMobile();
+  });
+}
+
+// Control del menú hamburguesa móvil
+if (btnMenuToggle && sidebar) {
+  btnMenuToggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    sidebar.classList.toggle("active");
+  });
+
+  // Cerrar sidebar al hacer clic en el área principal
+  document.addEventListener("click", (e) => {
+    if (sidebar.classList.contains("active") && !sidebar.contains(e.target) && e.target !== btnMenuToggle) {
+      sidebar.classList.remove("active");
+    }
   });
 }
 
@@ -266,12 +367,12 @@ btnLogout.addEventListener("click", async () => {
 
   if (isDemoMode) {
     sessionStorage.clear();
-    window.location.href = "/login";
+    window.location.href = LOGIN_REDIRECT;
   } else {
     try {
       await signOut(auth);
       sessionStorage.clear();
-      window.location.href = "/login";
+      window.location.href = LOGIN_REDIRECT;
     } catch (e) {
       showLoading(false);
       console.error("Error al cerrar sesión:", e);
@@ -280,41 +381,280 @@ btnLogout.addEventListener("click", async () => {
 });
 
 // ====================================================
+// GESTIÓN DEL PERFIL DE USUARIO (Acciones y Contraseña)
+// ====================================================
+function setupUserProfile(profile) {
+  const profileDetailsForm = document.getElementById("profile-details-form");
+  const profileAvatarInput = document.getElementById("profile-avatar-input");
+  const profileAvatarImg = document.getElementById("profile-avatar-img");
+  const profileFullNameInput = document.getElementById("profile-full-name");
+  const profileAliasInput = document.getElementById("profile-alias");
+  const profilePhoneInput = document.getElementById("profile-phone");
+  const profileEmailInput = document.getElementById("profile-email");
+
+  const profilePasswordForm = document.getElementById("profile-password-form");
+  const profileNewPasswordInput = document.getElementById("profile-new-password");
+  const profileConfirmPasswordInput = document.getElementById("profile-confirm-password");
+
+  if (!profileDetailsForm) return;
+
+  // Llenar campos del perfil con la sesión activa
+  if (profileFullNameInput) profileFullNameInput.value = profile.nombre || "";
+  if (profileAliasInput) profileAliasInput.value = profile.alias || "";
+  if (profilePhoneInput) profilePhoneInput.value = profile.celular || "";
+  if (profileEmailInput) profileEmailInput.value = profile.email || "";
+  
+  if (profile.fotoPerfil && profileAvatarImg) {
+    profileAvatarImg.src = profile.fotoPerfil;
+  }
+
+  // Previsualización y codificación de imagen
+  if (profileAvatarInput && profileAvatarImg) {
+    profileAvatarInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const previewUrl = URL.createObjectURL(file);
+        profileAvatarImg.src = previewUrl;
+        
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          profileAvatarImg.dataset.pendingImage = reader.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  // Guardar datos del perfil
+  profileDetailsForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    showLoading(true);
+
+    const newAlias = profileAliasInput.value.trim();
+    const newPhone = profilePhoneInput.value.trim();
+    const pendingImage = profileAvatarImg.dataset.pendingImage;
+
+    const updatedData = {
+      alias: newAlias,
+      celular: newPhone
+    };
+
+    if (pendingImage) {
+      updatedData.fotoPerfil = pendingImage;
+    }
+
+    if (isDemoMode) {
+      setTimeout(() => {
+        const demoUsers = JSON.parse(localStorage.getItem("teocalli_demo_users") || "[]");
+        const idx = demoUsers.findIndex(u => u.uid === profile.uid);
+        if (idx !== -1) {
+          demoUsers[idx] = { ...demoUsers[idx], ...updatedData };
+          localStorage.setItem("teocalli_demo_users", JSON.stringify(demoUsers));
+          
+          sessionStorage.setItem("demo_active_user", JSON.stringify(demoUsers[idx]));
+          
+          // Actualizar navbar superior
+          profileName.textContent = demoUsers[idx].nombre;
+          
+          showLoading(false);
+          showAlert("Datos de perfil actualizados con éxito (Demo).", "success");
+        }
+      }, 500);
+    } else {
+      try {
+        const userRef = doc(db, "usuarios", profile.uid);
+        await updateDoc(userRef, updatedData);
+        
+        // Actualizar navbar
+        profileName.textContent = profile.nombre;
+        
+        showLoading(false);
+        showAlert("Tu perfil ha sido actualizado exitosamente.", "success");
+      } catch (error) {
+        showLoading(false);
+        console.error("Error al actualizar perfil:", error);
+        showAlert("Error al actualizar datos en Firestore.");
+      }
+    }
+  });
+
+  // Cambiar contraseña
+  if (profilePasswordForm) {
+    profilePasswordForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const newPassword = profileNewPasswordInput.value;
+      const confirmPassword = profileConfirmPasswordInput.value;
+
+      if (newPassword !== confirmPassword) {
+        showAlert("Las contraseñas no coinciden.");
+        return;
+      }
+
+      showLoading(true);
+
+      if (isDemoMode) {
+        setTimeout(() => {
+          profilePasswordForm.reset();
+          showLoading(false);
+          showAlert("Contraseña cambiada con éxito (Demo).", "success");
+        }, 500);
+      } else {
+        try {
+          const user = auth.currentUser;
+          if (user) {
+            const { updatePassword } = await import("https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js");
+            await updatePassword(user, newPassword);
+            
+            profilePasswordForm.reset();
+            showLoading(false);
+            showAlert("Contraseña actualizada con éxito.", "success");
+          } else {
+            showLoading(false);
+            showAlert("No se detectó un usuario autenticado.");
+          }
+        } catch (error) {
+          showLoading(false);
+          console.error("Error al cambiar contraseña:", error);
+          if (error.code === "auth/requires-recent-login") {
+            showAlert("⚠️ <strong>Acción requerida:</strong> Por seguridad, debes cerrar sesión, iniciar sesión de nuevo e intentar el cambio inmediatamente.");
+          } else {
+            showAlert("Error al actualizar contraseña: " + error.message);
+          }
+        }
+      }
+    });
+  }
+}
+
+// ====================================================
+// PESTAÑAS DE GESTIÓN (Tabs setup)
+// ====================================================
+function setupUserManagementTabs() {
+  const tabBtnList = document.getElementById("tab-btn-list");
+  const tabBtnForm = document.getElementById("tab-btn-form");
+  const tabContentList = document.getElementById("tab-content-list");
+  const tabContentForm = document.getElementById("tab-content-form");
+
+  if (!tabBtnList || !tabBtnForm || !tabContentList || !tabContentForm) return;
+
+  tabBtnList.addEventListener("click", () => {
+    tabBtnList.classList.add("active");
+    tabBtnForm.classList.remove("active");
+    tabContentList.style.display = "block";
+    tabContentForm.style.display = "none";
+  });
+
+  tabBtnForm.addEventListener("click", () => {
+    tabBtnForm.classList.add("active");
+    tabBtnList.classList.remove("active");
+    tabContentForm.style.display = "block";
+    tabContentList.style.display = "none";
+  });
+}
+
+function switchToTab(tabName) {
+  const tabBtnList = document.getElementById("tab-btn-list");
+  const tabBtnForm = document.getElementById("tab-btn-form");
+  const tabContentList = document.getElementById("tab-content-list");
+  const tabContentForm = document.getElementById("tab-content-form");
+
+  if (!tabBtnList || !tabBtnForm || !tabContentList || !tabContentForm) return;
+
+  if (tabName === "list") {
+    tabBtnList.classList.add("active");
+    tabBtnForm.classList.remove("active");
+    tabContentList.style.display = "block";
+    tabContentForm.style.display = "none";
+  } else if (tabName === "form") {
+    tabBtnForm.classList.add("active");
+    tabBtnList.classList.remove("active");
+    tabContentForm.style.display = "block";
+    tabContentList.style.display = "none";
+  }
+}
+
+// ====================================================
+// FILTRADO LOCAL DE USUARIOS
+// ====================================================
+function filterAndRender() {
+  let filtered = [...currentUsersData];
+
+  // 1. Filtrar por compañía
+  const compVal = filterCompany ? filterCompany.value : "todos";
+  if (compVal !== "todos") {
+    filtered = filtered.filter(u => u.id_compania === compVal);
+  }
+
+  // 2. Filtrar por sexo (género)
+  const genVal = filterGender ? filterGender.value : "todos";
+  if (genVal !== "todos") {
+    filtered = filtered.filter(u => u.sexo === genVal);
+  }
+
+  // 3. Filtrar por edad
+  const ageVal = filterAge ? filterAge.value : "todos";
+  if (ageVal !== "todos") {
+    filtered = filtered.filter(u => {
+      const age = calculateAge(u.fechaNacimiento);
+      if (age === "--") return false;
+
+      if (ageVal === "menor") return age < 18;
+      if (ageVal === "joven") return age >= 18 && age <= 25;
+      if (ageVal === "adulto") return age >= 26 && age <= 35;
+      if (ageVal === "mayor") return age > 35;
+      return true;
+    });
+  }
+
+  renderUsersTable(filtered);
+
+  // El badge de la tabla muestra el número de miembros filtrados
+  if (usersCountBadge) usersCountBadge.textContent = `${filtered.length} miembros`;
+
+  // Las métricas grandes muestran los totales globales
+  updateMetrics(currentUsersData);
+}
+
+// ====================================================
 // CRUD DE USUARIOS (Solo Super Administrador)
 // ====================================================
 function setupSuperAdminCRUD() {
-  // Manejadores de navegación de pestañas
-  navDbGeneral.addEventListener("click", (e) => {
-    e.preventDefault();
-    switchDbSection("general");
-  });
+  if (navDbUsers) {
+    navDbUsers.addEventListener("click", (e) => {
+      e.preventDefault();
+      switchDbSection("users");
+      closeSidebarOnMobile();
+    });
+  }
 
-  navDbUsers.addEventListener("click", (e) => {
-    e.preventDefault();
-    switchDbSection("users");
-  });
+  // Configurar listeners de las pestañas
+  setupUserManagementTabs();
+
+  // Escuchar cambios en los filtros
+  if (filterCompany) filterCompany.addEventListener("change", filterAndRender);
+  if (filterGender) filterGender.addEventListener("change", filterAndRender);
+  if (filterAge) filterAge.addEventListener("change", filterAndRender);
 
   // Configurar envío del formulario de registro (Crear/Editar)
-  newUserForm.addEventListener("submit", handleFormSubmit);
+  if (newUserForm) newUserForm.addEventListener("submit", handleFormSubmit);
 
   // Configurar botón cancelar edición
-  btnCancelEdit.addEventListener("click", resetFormState);
+  if (btnCancelEdit) btnCancelEdit.addEventListener("click", resetFormState);
 
   // READ (Lectura en tiempo real)
   if (isDemoMode) {
     // Sincronización simulada local
-    const usersList = JSON.parse(localStorage.getItem("teocalli_demo_users") || "[]");
-    updateMetrics(usersList);
-    renderUsersTable(usersList);
+    currentUsersData = JSON.parse(localStorage.getItem("teocalli_demo_users") || "[]");
+    filterAndRender();
   } else {
     const q = collection(db, "usuarios");
     unsubscribeUsers = onSnapshot(q, (snapshot) => {
-      const usersList = [];
+      currentUsersData = [];
       snapshot.forEach((doc) => {
-        usersList.push({ uid: doc.id, ...doc.data() });
+        currentUsersData.push({ uid: doc.id, ...doc.data() });
       });
-      updateMetrics(usersList);
-      renderUsersTable(usersList);
+      filterAndRender();
     }, (error) => {
       console.error("Error al leer en tiempo real de Firestore:", error);
       showAlert("Error de permisos en Firestore al sincronizar usuarios.");
@@ -329,11 +669,14 @@ function switchDbSection(sectionName) {
   document.querySelectorAll(".db-section").forEach(s => s.classList.remove("active"));
 
   if (sectionName === "general") {
-    navDbGeneral.classList.add("active");
-    dbSectionGeneral.classList.add("active");
+    if (navDbGeneral) navDbGeneral.classList.add("active");
+    if (dbSectionGeneral) dbSectionGeneral.classList.add("active");
   } else if (sectionName === "users") {
-    navDbUsers.classList.add("active");
-    dbSectionUsers.classList.add("active");
+    if (navDbUsers) navDbUsers.classList.add("active");
+    if (dbSectionUsers) dbSectionUsers.classList.add("active");
+  } else if (sectionName === "profile") {
+    if (navDbProfile) navDbProfile.classList.add("active");
+    if (dbSectionProfile) dbSectionProfile.classList.add("active");
   }
 }
 
@@ -341,16 +684,16 @@ function updateMetrics(users) {
   const total = users.length;
   const active = users.filter(u => u.activo === true).length;
   
-  metricTotalDancers.textContent = total;
-  metricActiveDancers.textContent = active;
-  usersCountBadge.textContent = `${total} miembros`;
+  if (metricTotalDancers) metricTotalDancers.textContent = total;
+  if (metricActiveDancers) metricActiveDancers.textContent = active;
 }
 
 function renderUsersTable(users) {
+  if (!usersTableBody) return;
   usersTableBody.innerHTML = "";
 
   if (users.length === 0) {
-    usersTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center;">No hay miembros registrados.</td></tr>`;
+    usersTableBody.innerHTML = `<tr><td colspan="7" style="text-align: center;">No hay miembros que coincidan con los filtros.</td></tr>`;
     return;
   }
 
@@ -367,12 +710,19 @@ function renderUsersTable(users) {
       
     const roleText = rolesCatalog[user.id_rol] || user.id_rol;
 
+    const age = calculateAge(user.fechaNacimiento);
+    const genderText = user.sexo === "Femenino" ? "Mujer" : (user.sexo === "Masculino" ? "Hombre" : "--");
+
     tr.innerHTML = `
       <td>
         <strong style="font-size: 15px;">${user.nombre}</strong>
         ${user.alias ? `<br><small style="color: var(--text-muted);">"${user.alias}"</small>` : ""}
       </td>
       <td>${companyName}</td>
+      <td>
+        <div>${age} años</div>
+        <small style="color: var(--text-muted);">${genderText}</small>
+      </td>
       <td>
         <div>${user.email}</div>
         <small style="color: var(--text-muted);">${user.celular}</small>
@@ -424,6 +774,7 @@ async function handleFormSubmit(e) {
   const phone = regPhoneInput.value.trim();
   const role = regRoleSelect.value;
   const active = regStatusInput.checked;
+  const sexo = regSexoSelect ? regSexoSelect.value : "";
 
   showLoading(true);
 
@@ -432,6 +783,7 @@ async function handleFormSubmit(e) {
     nombre: name,
     alias: alias,
     fechaNacimiento: dob,
+    sexo: sexo,
     email: email,
     celular: phone,
     id_compania: company,
@@ -453,12 +805,13 @@ async function handleFormSubmit(e) {
         const demoUsers = JSON.parse(localStorage.getItem("teocalli_demo_users") || "[]");
         const idx = demoUsers.findIndex(u => u.uid === uid);
         if (idx !== -1) {
-          demoUsers[idx] = { uid, ...userData };
+          demoUsers[idx] = { ...demoUsers[idx], ...userData };
           localStorage.setItem("teocalli_demo_users", JSON.stringify(demoUsers));
           
           resetFormState();
-          updateMetrics(demoUsers);
-          renderUsersTable(demoUsers);
+          currentUsersData = demoUsers;
+          filterAndRender();
+          
           showLoading(false);
           showAlert("Miembro actualizado con éxito (Demo).", "success");
         }
@@ -492,23 +845,29 @@ async function handleFormSubmit(e) {
         }
 
         const newUid = "demo-uid-" + Math.random().toString(36).substr(2, 9);
-        const newUser = { uid: newUid, ...userData, creadoEn: new Date().toISOString() };
+        const newUser = { 
+          uid: newUid, 
+          ...userData, 
+          requiereCambioPassword: true, 
+          creadoEn: new Date().toISOString() 
+        };
         
         demoUsers.push(newUser);
         localStorage.setItem("teocalli_demo_users", JSON.stringify(demoUsers));
         
         resetFormState();
-        updateMetrics(demoUsers);
-        renderUsersTable(demoUsers);
+        currentUsersData = demoUsers;
+        filterAndRender();
+        
         showLoading(false);
-        showAlert("Miembro registrado exitosamente (Demo).", "success");
+        showAlert("Miembro registrado con contraseña temporal 'teocalli2026' (Demo).", "success");
       }, 500);
     } else {
-      // Real en Firestore
+      // Real en Firestore / Firebase Auth
       try {
         const usersRef = collection(db, "usuarios");
         
-        // Comprobar correo único
+        // Comprobar correo único en Firestore
         const q = query(usersRef, where("email", "==", email));
         const qSnap = await getDocs(q);
         if (!qSnap.empty) {
@@ -517,19 +876,40 @@ async function handleFormSubmit(e) {
           return;
         }
 
-        const newUserDoc = { ...userData, creadoEn: serverTimestamp() };
-        const docRef = await addDoc(collection(db, "usuarios"), newUserDoc);
+        // --- REGISTRAR EN FIREBASE AUTH CON APP SECUNDARIA ---
+        const { initializeApp } = await import("https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js");
+        const { getAuth, createUserWithEmailAndPassword, signOut: secondarySignOut } = await import("https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js");
         
-        // Agregar UID autogenerado dentro de los campos
-        await updateDoc(doc(db, "usuarios", docRef.id), { uid: docRef.id });
+        // Inicializar app secundaria temporal con nombre único para evitar colisiones
+        const appName = "secondary-auth-" + Math.random().toString(36).substr(2, 9);
+        const secondaryApp = initializeApp(firebaseConfig, appName);
+        const secondaryAuth = getAuth(secondaryApp);
+        
+        // Crear usuario en Authentication con contraseña temporal teocalli2026
+        const authResult = await createUserWithEmailAndPassword(secondaryAuth, email, "teocalli2026");
+        const newUid = authResult.user.uid;
+        
+        // Cerrar sesión en la app secundaria de inmediato para no alterar sesión del administrador
+        await secondarySignOut(secondaryAuth);
+
+        // Estructura del perfil Firestore
+        const newUserDoc = { 
+          ...userData, 
+          uid: newUid,
+          requiereCambioPassword: true, // Forzar cambio de contraseña en primer login
+          creadoEn: serverTimestamp() 
+        };
+        
+        // Guardar perfil en la base de datos con ID igual al UID creado
+        await setDoc(doc(db, "usuarios", newUid), newUserDoc);
 
         resetFormState();
         showLoading(false);
-        showAlert("Miembro registrado exitosamente en Firestore.", "success");
+        showAlert("Miembro registrado exitosamente. Contraseña temporal: 'teocalli2026'.", "success");
       } catch (error) {
         showLoading(false);
-        console.error("Error al crear usuario en Firestore:", error);
-        showAlert("Error al registrar en Firestore: " + error.message);
+        console.error("Error al registrar en Firebase Auth/Firestore:", error);
+        showAlert("Error al registrar en Firebase: " + error.message);
       }
     }
   }
@@ -559,23 +939,24 @@ async function enterEditMode(uid) {
 
   if (user) {
     // Llenar campos del formulario
-    regUidInput.value = user.uid;
-    regNameInput.value = user.nombre;
-    regAliasInput.value = user.alias;
-    regDobInput.value = user.fechaNacimiento;
-    regCompanySelect.value = user.id_compania;
-    regEmailInput.value = user.email;
-    regPhoneInput.value = user.celular;
-    regRoleSelect.value = user.id_rol;
-    regStatusInput.checked = user.activo;
+    if (regUidInput) regUidInput.value = user.uid;
+    if (regNameInput) regNameInput.value = user.nombre;
+    if (regAliasInput) regAliasInput.value = user.alias;
+    if (regDobInput) regDobInput.value = user.fechaNacimiento;
+    if (regSexoSelect) regSexoSelect.value = user.sexo || "";
+    if (regCompanySelect) regCompanySelect.value = user.id_compania;
+    if (regEmailInput) regEmailInput.value = user.email;
+    if (regPhoneInput) regPhoneInput.value = user.celular;
+    if (regRoleSelect) regRoleSelect.value = user.id_rol;
+    if (regStatusInput) regStatusInput.checked = user.activo;
 
     // Cambiar textos y botones del formulario
-    formActionTitle.textContent = "Editar Miembro";
-    btnRegisterSubmit.textContent = "Guardar Cambios";
-    btnCancelEdit.style.display = "inline-block";
+    if (formActionTitle) formActionTitle.textContent = "Editar Miembro";
+    if (btnRegisterSubmit) btnRegisterSubmit.textContent = "Guardar Cambios";
+    if (btnCancelEdit) btnCancelEdit.style.display = "inline-block";
     
-    // Hacer scroll suave al formulario en móvil
-    userRegistrationCard.scrollIntoView({ behavior: "smooth" });
+    // Cambiar automáticamente a la pestaña del formulario para visualización
+    switchToTab("form");
   }
   
   showLoading(false);
@@ -583,12 +964,16 @@ async function enterEditMode(uid) {
 
 // Resetear formulario a modo de creación
 function resetFormState() {
-  newUserForm.reset();
-  regUidInput.value = "";
-  regStatusInput.checked = true;
-  formActionTitle.textContent = "Registrar Nuevo Miembro";
-  btnRegisterSubmit.textContent = "Registrar Usuario";
-  btnCancelEdit.style.display = "none";
+  if (newUserForm) newUserForm.reset();
+  if (regUidInput) regUidInput.value = "";
+  if (regSexoSelect) regSexoSelect.value = "";
+  if (regStatusInput) regStatusInput.checked = true;
+  if (formActionTitle) formActionTitle.textContent = "Registrar Nuevo Miembro";
+  if (btnRegisterSubmit) btnRegisterSubmit.textContent = "Registrar Usuario";
+  if (btnCancelEdit) btnCancelEdit.style.display = "none";
+  
+  // Cambiar automáticamente a la pestaña del listado al terminar la acción
+  switchToTab("list");
 }
 
 // ====================================================
@@ -611,10 +996,11 @@ async function handleDeleteUser(uid) {
       const filtered = demoUsers.filter(u => u.uid !== uid);
       localStorage.setItem("teocalli_demo_users", JSON.stringify(filtered));
       
-      if (regUidInput.value === uid) resetFormState();
+      if (regUidInput && regUidInput.value === uid) resetFormState();
       
-      updateMetrics(filtered);
-      renderUsersTable(filtered);
+      currentUsersData = filtered;
+      filterAndRender();
+      
       showLoading(false);
       showAlert("Miembro eliminado de la simulación.", "success");
     }, 400);
@@ -623,7 +1009,7 @@ async function handleDeleteUser(uid) {
       const userRef = doc(db, "usuarios", uid);
       await deleteDoc(userRef);
       
-      if (regUidInput.value === uid) resetFormState();
+      if (regUidInput && regUidInput.value === uid) resetFormState();
       
       showLoading(false);
       showAlert("Miembro eliminado exitosamente de Firestore.", "success");

@@ -10,30 +10,34 @@
 <body>
 
   <!-- Dashboard Wrapper -->
-  <div class="dashboard-wrapper">
+  <div class="dashboard-wrapper" style="display: none;">
     
     <!-- Sidebar / Barra Lateral -->
     <aside class="sidebar">
       <div class="sidebar-header">
-        <svg class="sidebar-logo" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2L14.39 6.83L19.7 7.6L15.85 11.35L16.76 16.64L12 14.14L7.24 16.64L8.15 11.35L4.3 7.6L9.61 6.83L12 2Z" fill="#D11A5B"/>
-        </svg>
+        <img src="teocalli.jfif" class="sidebar-logo" alt="Logo Teocalli" style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px;">
         <div class="sidebar-title text-serif">Compañía <br><span class="text-primary">Teocalli</span></div>
       </div>
       
       <nav style="flex-grow: 1;">
         <ul class="sidebar-menu">
           <li>
-            <a class="sidebar-link active" id="nav-db-general">
+            <a class="sidebar-link active" id="btn-resumen">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
               <span>Resumen General</span>
             </a>
           </li>
           <!-- Se mostrará y controlará dinámicamente según el rol en compania.js -->
           <li id="sidebar-opt-users" style="display: none;">
-            <a class="sidebar-link" id="nav-db-users">
+            <a class="sidebar-link" id="btn-users">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               <span>Gestión de Usuarios</span>
+            </a>
+          </li>
+          <li>
+            <a class="sidebar-link" id="btn-perfil">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span>Mi Perfil</span>
             </a>
           </li>
         </ul>
@@ -55,10 +59,16 @@
     <main class="main-content">
       
       <!-- Top Navbar (Encabezado superior de bienvenida y estado) -->
-      <header class="dashboard-header">
-        <div class="dashboard-title">
-          <h2 class="text-serif" id="db-welcome-title">¡Bienvenido!</h2>
-          <p id="db-welcome-desc">Cargando perfil e información del sistema...</p>
+      <header class="dashboard-header" style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center;">
+          <!-- Botón de Menú Hamburguesa para Móvil -->
+          <button id="btn-menu-toggle" class="btn" style="display: none; padding: 8px; margin-right: 16px; background: transparent; border: 1.5px solid var(--border-color); color: var(--text-main); border-radius: var(--radius-sm); cursor: pointer; box-shadow: none;">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="dashboard-title">
+            <h2 class="text-serif" id="db-welcome-title">¡Bienvenido!</h2>
+            <p id="db-welcome-desc">Cargando perfil e información del sistema...</p>
+          </div>
         </div>
         <div style="display: flex; align-items: center; gap: 12px;">
           <span class="badge" id="badge-active-status">...</span>
@@ -120,105 +130,240 @@
            SECCIÓN 2: GESTIÓN DE USUARIOS (CRUD - Exclusivo Super Administrador)
            ==================================================== -->
       <section id="db-section-users" class="db-section">
-        <div class="users-management-grid" id="admin-crud-container">
+        
+        <!-- Pestañas de Gestión -->
+        <div style="display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 24px; padding-bottom: 2px;">
+          <button id="tab-btn-list" class="btn tab-btn active" style="background: transparent; border: none; padding: 10px 20px; font-weight: 600; font-size: 15px; cursor: pointer; color: var(--text-muted); border-bottom: 3px solid transparent; border-radius: 0; box-shadow: none;">Lista de Miembros</button>
+          <button id="tab-btn-form" class="btn tab-btn" style="background: transparent; border: none; padding: 10px 20px; font-weight: 600; font-size: 15px; cursor: pointer; color: var(--text-muted); border-bottom: 3px solid transparent; border-radius: 0; box-shadow: none;">Registrar / Editar Miembro</button>
+        </div>
+
+        <div id="users-management-tabs-content">
           
-          <!-- Lista de Miembros (Tabla CRUD) -->
-          <div class="panel-card">
-            <div class="panel-card-title text-serif">
-              <span>Miembros Registrados</span>
-              <span id="users-count-badge" class="badge badge-role-bailarin">0 miembros</span>
+          <!-- PESTAÑA 1: LISTADO Y FILTROS -->
+          <div id="tab-content-list" class="tab-pane active">
+            <!-- Barra de Filtros -->
+            <div class="panel-card" style="margin-bottom: 20px; padding: 16px;">
+              <h4 style="margin-bottom: 12px; font-size: 14px; font-weight: 600; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px;">Filtrar Miembros</h4>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="font-size: 11px; margin-bottom: 4px;">Compañía</label>
+                  <select id="filter-company" class="form-input" style="appearance: auto; padding: 8px; font-size: 13px;">
+                    <option value="todos">Todas las Compañías</option>
+                    <option value="1ra-compania">1ra Compañía</option>
+                    <option value="segunda-compania">Segunda Compañía</option>
+                    <option value="prebase">Prebase</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="font-size: 11px; margin-bottom: 4px;">Sexo</label>
+                  <select id="filter-gender" class="form-input" style="appearance: auto; padding: 8px; font-size: 13px;">
+                    <option value="todos">Todos</option>
+                    <option value="Femenino">Mujeres</option>
+                    <option value="Masculino">Hombres</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="font-size: 11px; margin-bottom: 4px;">Edad</label>
+                  <select id="filter-age" class="form-input" style="appearance: auto; padding: 8px; font-size: 13px;">
+                    <option value="todos">Todas las Edades</option>
+                    <option value="menor">Menores de edad (&lt;18)</option>
+                    <option value="joven">18-25 años</option>
+                    <option value="adulto">26-35 años</option>
+                    <option value="mayor">Mayores de 35 (&gt;35)</option>
+                  </select>
+                </div>
+              </div>
             </div>
-            
-            <div class="table-wrapper">
-              <table class="data-table" id="users-table">
-                <thead>
-                  <tr>
-                    <th>Nombre / Alias</th>
-                    <th>Compañía</th>
-                    <th>Contacto</th>
-                    <th>Rol</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody id="users-table-body">
-                  <tr>
-                    <td colspan="6" style="text-align: center; color: var(--text-muted);">Cargando catálogo de miembros...</td>
-                  </tr>
-                </tbody>
-              </table>
+
+            <!-- Lista de Miembros (Tabla CRUD) -->
+            <div class="panel-card">
+              <div class="panel-card-title text-serif">
+                <span>Miembros Registrados</span>
+                <span id="users-count-badge" class="badge badge-role-bailarin">0 miembros</span>
+              </div>
+              
+              <div class="table-wrapper">
+                <table class="data-table" id="users-table">
+                  <thead>
+                    <tr>
+                      <th>Nombre / Alias</th>
+                      <th>Compañía</th>
+                      <th>Edad / Sexo</th>
+                      <th>Contacto</th>
+                      <th>Rol</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="users-table-body">
+                    <tr>
+                      <td colspan="7" style="text-align: center; color: var(--text-muted);">Cargando catálogo de miembros...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
-          <!-- Formulario de Registro / Edición de Miembros -->
-          <div class="panel-card" id="user-registration-card">
-            <h3 class="panel-card-title text-serif" id="form-action-title">Registrar Nuevo Miembro</h3>
-            <form id="new-user-form">
-              <!-- ID oculto para saber si editamos o creamos -->
-              <input type="hidden" id="reg-uid" value="">
-
-              <div class="registration-form-grid">
-                
-                <div class="form-group">
-                  <label class="form-label" for="reg-name">Nombre Completo</label>
-                  <input type="text" id="reg-name" class="form-input" required placeholder="Juan Pérez">
-                </div>
-                
-                <div class="form-row-2">
+          <!-- PESTAÑA 2: FORMULARIO -->
+          <div id="tab-content-form" class="tab-pane" style="display: none;">
+            <!-- Formulario de Registro / Edición de Miembros -->
+            <div class="panel-card" id="user-registration-card" style="max-width: 650px; margin: 0 auto;">
+              <h3 class="panel-card-title text-serif" id="form-action-title">Registrar Nuevo Miembro</h3>
+              <form id="new-user-form">
+                <!-- ID oculto para saber si editamos o creamos -->
+                <input type="hidden" id="reg-uid" value="">
+  
+                <div class="registration-form-grid">
+                  
                   <div class="form-group">
-                    <label class="form-label" for="reg-alias">Alias / Apodo</label>
-                    <input type="text" id="reg-alias" class="form-input" required placeholder="Ej: Juanito">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label" for="reg-dob">Fecha de Nacimiento</label>
-                    <input type="date" id="reg-dob" class="form-input" required>
-                  </div>
-                </div>
-
-                <!-- Dropdown de Compañía: sus opciones cargan dinámicamente de Firestore -->
-                <div class="form-group">
-                  <label class="form-label" for="reg-company">Compañía</label>
-                  <select id="reg-company" class="form-input" required style="appearance: auto;">
-                    <option value="" disabled selected>Cargando compañías...</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="reg-email">Correo Electrónico</label>
-                  <input type="email" id="reg-email" class="form-input" required placeholder="juan@teocalli.org">
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="reg-phone">Número de Celular</label>
-                  <input type="tel" id="reg-phone" class="form-input" required placeholder="3312345678" pattern="[0-9]{10}">
-                </div>
-
-                <div class="form-row-2" style="align-items: center; padding: 10px 0;">
-                  <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label" for="reg-role">Rol asignado</label>
-                    <select id="reg-role" class="form-input" required style="appearance: auto;">
-                      <option value="bailarin" selected>Bailarín</option>
-                      <option value="admin">Administrador</option>
-                      <option value="super_admin">Super Administrador</option>
-                    </select>
+                    <label class="form-label" for="reg-name">Nombre Completo</label>
+                    <input type="text" id="reg-name" class="form-input" required placeholder="Juan Pérez">
                   </div>
                   
-                  <div class="form-group" style="margin-bottom: 0; display: flex; flex-direction: column; align-items: flex-end;">
-                    <label class="form-label" style="margin-bottom: 8px;">Estado del Usuario</label>
-                    <label class="switch-container">
-                      <input type="checkbox" id="reg-status" class="switch-input" checked>
-                      <div class="switch-track">
-                        <div class="switch-thumb"></div>
-                      </div>
-                    </label>
+                  <div class="form-row-2">
+                    <div class="form-group">
+                      <label class="form-label" for="reg-alias">Alias / Apodo</label>
+                      <input type="text" id="reg-alias" class="form-input" required placeholder="Ej: Juanito">
+                    </div>
+                    
+                    <div class="form-group">
+                      <label class="form-label" for="reg-dob">Fecha de Nacimiento</label>
+                      <input type="date" id="reg-dob" class="form-input" required>
+                    </div>
+                  </div>
+                  
+                  <div class="form-row-2">
+                    <div class="form-group">
+                      <label class="form-label" for="reg-sexo">Sexo</label>
+                      <select id="reg-sexo" class="form-input" required style="appearance: auto;">
+                        <option value="" disabled selected>Selecciona sexo</option>
+                        <option value="Femenino">Femenino (Mujer)</option>
+                        <option value="Masculino">Masculino (Hombre)</option>
+                      </select>
+                    </div>
+                    
+                    <div class="form-group">
+                      <label class="form-label" for="reg-company">Compañía</label>
+                      <select id="reg-company" class="form-input" required style="appearance: auto;">
+                        <option value="" disabled selected>Selecciona compañía</option>
+                      </select>
+                    </div>
+                  </div>
+  
+                  <div class="form-group">
+                    <label class="form-label" for="reg-email">Correo Electrónico</label>
+                    <input type="email" id="reg-email" class="form-input" required placeholder="juan@teocalli.org">
+                  </div>
+  
+                  <div class="form-group">
+                    <label class="form-label" for="reg-phone">Número de Celular</label>
+                    <input type="tel" id="reg-phone" class="form-input" required placeholder="3312345678" pattern="[0-9]{10}">
+                  </div>
+  
+                  <div class="form-row-2" style="align-items: center; padding: 10px 0;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label" for="reg-role">Rol asignado</label>
+                      <select id="reg-role" class="form-input" required style="appearance: auto;">
+                        <option value="bailarin" selected>Bailarín</option>
+                        <option value="admin">Administrador</option>
+                        <option value="super_admin">Super Administrador</option>
+                      </select>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 0; display: flex; flex-direction: column; align-items: flex-end;">
+                      <label class="form-label" style="margin-bottom: 8px;">Estado del Usuario</label>
+                      <label class="switch-container">
+                        <input type="checkbox" id="reg-status" class="switch-input" checked>
+                        <div class="switch-track">
+                          <div class="switch-thumb"></div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+  
+                  <div style="margin-top: 16px; display: flex; gap: 12px;">
+                    <button type="submit" class="btn btn-primary btn-block" id="btn-register-submit">Registrar Usuario</button>
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-edit" style="display: none; width: auto;">Cancelar</button>
+                  </div>
+  
+                </div>
+              </form>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ====================================================
+           SECCIÓN 3: MI PERFIL (Todos los roles activos)
+           ==================================================== -->
+      <section id="db-section-profile" class="db-section">
+        <div class="users-management-grid">
+          
+          <!-- Datos personales y foto -->
+          <div class="panel-card">
+            <h3 class="panel-card-title text-serif">Mis Datos Personales</h3>
+            
+            <form id="profile-details-form">
+              <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 30px;">
+                <!-- Avatar Circular con botón superpuesto -->
+                <div style="position: relative; width: 120px; height: 120px;">
+                  <img id="profile-avatar-img" src="teocalli.jfif" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); box-shadow: var(--shadow-md);">
+                  <label for="profile-avatar-input" style="position: absolute; bottom: 0; right: 0; background-color: var(--primary); color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: var(--shadow-sm); transition: var(--transition);">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  </label>
+                  <input type="file" id="profile-avatar-input" accept="image/*" style="display: none;">
+                </div>
+                <small style="color: var(--text-muted); margin-top: 10px;">Haz click en el icono para subir una imagen</small>
+              </div>
+
+              <div class="registration-form-grid">
+                <div class="form-group">
+                  <label class="form-label" for="profile-full-name">Nombre Completo</label>
+                  <input type="text" id="profile-full-name" class="form-input" disabled style="background-color: #f1ede8; cursor: not-allowed;">
+                </div>
+
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label class="form-label" for="profile-alias">Alias / Nombre Artístico</label>
+                    <input type="text" id="profile-alias" class="form-input" required placeholder="Alias">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="profile-phone">Número de Celular</label>
+                    <input type="tel" id="profile-phone" class="form-input" required placeholder="10 dígitos" pattern="[0-9]{10}">
                   </div>
                 </div>
 
-                <div style="margin-top: 16px; display: flex; gap: 12px;">
-                  <button type="submit" class="btn btn-primary btn-block" id="btn-register-submit">Registrar Usuario</button>
-                  <button type="button" class="btn btn-secondary" id="btn-cancel-edit" style="display: none; width: auto;">Cancelar</button>
+                <div class="form-group">
+                  <label class="form-label" for="profile-email">Correo Electrónico</label>
+                  <input type="email" id="profile-email" class="form-input" disabled style="background-color: #f1ede8; cursor: not-allowed;">
+                  <small style="color: var(--text-muted); display: block; margin-top: 4px;">Este correo es tu clave de acceso única en la plataforma y no puede modificarse.</small>
                 </div>
 
+                <button type="submit" class="btn btn-primary" id="btn-save-profile">Actualizar Datos</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Cambio de Contraseña -->
+          <div class="panel-card">
+            <h3 class="panel-card-title text-serif">Seguridad</h3>
+            <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 14px;">Cambia tu contraseña periódicamente para mantener tu cuenta segura.</p>
+            
+            <form id="profile-password-form">
+              <div class="registration-form-grid">
+                <div class="form-group">
+                  <label class="form-label" for="profile-new-password">Nueva Contraseña</label>
+                  <input type="password" id="profile-new-password" class="form-input" required placeholder="Mínimo 6 caracteres" minlength="6">
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label" for="profile-confirm-password">Confirmar Nueva Contraseña</label>
+                  <input type="password" id="profile-confirm-password" class="form-input" required placeholder="Confirma la contraseña" minlength="6">
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="btn-change-password" style="background-color: var(--text-main); box-shadow: none;">Cambiar Contraseña</button>
               </div>
             </form>
           </div>
