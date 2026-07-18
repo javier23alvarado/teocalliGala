@@ -47,6 +47,7 @@ const metricActiveDancers = document.getElementById("metric-active-dancers");
 const newUserForm = document.getElementById("new-user-form");
 const usersTableBody = document.getElementById("users-table-body");
 const usersCountBadge = document.getElementById("users-count-badge");
+const userRegistrationCard = document.getElementById("user-registration-card");
 
 // Estado
 let currentUserProfile = null;
@@ -82,23 +83,20 @@ function showAlert(message, type = "danger") {
 // ROUTE GUARD E INICIALIZACIÓN DE SESIÓN
 // ====================================================
 if (isDemoMode) {
-  // Inicialización de Ruta Protegida en Modo Demo
   console.warn("🔧 Ejecutando Dashboard en Modo Demo (Local Storage).");
   const demoSession = sessionStorage.getItem("demo_active_user");
   if (!demoSession) {
-    // No hay sesión activa, redirigir inmediatamente a login
-    window.location.href = "/login";
+    window.location.href = "/login.html";
   } else {
     currentUserProfile = JSON.parse(demoSession);
     initializeDashboard(currentUserProfile);
   }
 } else {
-  // Inicialización de Ruta Protegida Real con Firebase Auth
   showLoading(true);
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
-      // Route Guard: Redirección inmediata si no hay sesión
-      window.location.href = "/login";
+      // Route Guard: Redirección inmediata si no hay usuario autenticado
+      window.location.href = "/login.html";
     } else {
       try {
         // Consultar el perfil en Firestore
@@ -108,34 +106,34 @@ if (isDemoMode) {
         if (userDoc.exists()) {
           const userData = userDoc.data();
 
-          // Bloqueo estricto si el usuario fue desactivado
+          // Bloqueo inmediato si la cuenta no está activa
           if (userData.activo !== true) {
             await signOut(auth);
             sessionStorage.clear();
-            window.location.href = "/login";
+            window.location.href = "/login.html";
             return;
           }
 
           currentUserProfile = { uid: user.uid, ...userData };
           initializeDashboard(currentUserProfile);
         } else {
-          // Documento no configurado
+          // Si el perfil no existe en la base de datos
           await signOut(auth);
-          window.location.href = "/login";
+          sessionStorage.clear();
+          window.location.href = "/login.html";
         }
       } catch (error) {
-        console.error("Error al autenticar ruta protegida:", error);
-        window.location.href = "/login";
+        console.error("Error al cargar perfil tras onAuthStateChanged:", error);
+        window.location.href = "/login.html";
       }
     }
   });
 }
 
 // ====================================================
-// ORQUESTACIÓN Y CONFIGURACIÓN SEGÚN ROL
+// ORQUESTACIÓN DE ACCESO Y RENDERIZADO POR ROLES
 // ====================================================
 function initializeDashboard(profile) {
-  // 1. Mostrar información básica de bienvenida
   profileName.textContent = profile.nombre;
   
   let rolText = "Bailarín";
@@ -152,18 +150,19 @@ function initializeDashboard(profile) {
   badgeActiveStatus.textContent = "Perfil Activo";
   badgeActiveStatus.className = "badge badge-active";
 
-  // 2. ORQUESTACIÓN DE VISTAS POR ROL:
-  // - Si es 'super_admin': Mostrar controles completos.
-  // - Si es 'admin' o 'bailarin': Remover por completo del DOM los controles de administración.
+  // Lógica de Renderizado Dinámico / Control de Acceso:
   if (profile.rol === "super_admin") {
-    sidebarOptUsers.style.display = "block";
+    // Si es super_admin: Habilitar y mostrar los controles de gestión de usuarios
+    if (sidebarOptUsers) sidebarOptUsers.style.display = "block";
+    if (userRegistrationCard) userRegistrationCard.style.display = "block";
     setupSuperAdminFeatures();
   } else {
-    // Remover físicamente los elementos del DOM por seguridad y limpieza
+    // Si es admin o bailarin: Remover o deshabilitar por completo los controles administrativos del DOM
     if (sidebarOptUsers) sidebarOptUsers.remove();
     if (dbSectionUsers) dbSectionUsers.remove();
+    if (userRegistrationCard) userRegistrationCard.remove();
     
-    // Si no es Super Admin, las métricas no muestran datos de otros usuarios
+    // Deshabilitar métricas internas
     metricTotalDancers.textContent = "--";
     metricActiveDancers.textContent = "--";
     
@@ -181,24 +180,23 @@ btnLogout.addEventListener("click", async () => {
 
   if (isDemoMode) {
     sessionStorage.clear();
-    window.location.href = "/login";
+    window.location.href = "/login.html";
   } else {
     try {
       await signOut(auth);
       sessionStorage.clear();
-      window.location.href = "/login";
+      window.location.href = "/login.html";
     } catch (e) {
       showLoading(false);
-      console.error("Error al desloguearse:", e);
+      console.error("Error al cerrar sesión:", e);
     }
   }
 });
 
 // ====================================================
-// SECCIÓN EXCLUSIVA: LÓGICA DE SUPER ADMINISTRADOR
+// NAVEGACIÓN Y SINCRONIZACIÓN DE BASE DE DATOS (Super Admin)
 // ====================================================
 function setupSuperAdminFeatures() {
-  // Configurar navegación de pestañas
   navDbGeneral.addEventListener("click", (e) => {
     e.preventDefault();
     switchSection("general");
@@ -209,7 +207,6 @@ function setupSuperAdminFeatures() {
     switchSection("users");
   });
 
-  // Cargar y escuchar datos en tiempo real
   if (isDemoMode) {
     const usersList = JSON.parse(localStorage.getItem("teocalli_demo_users") || "[]");
     updateMetrics(usersList);
@@ -229,9 +226,7 @@ function setupSuperAdminFeatures() {
     });
   }
 
-  // Configurar submit de creación de usuario
   newUserForm.addEventListener("submit", handleRegisterUser);
-  
   showLoading(false);
 }
 
@@ -305,7 +300,6 @@ function renderUsersTable(users) {
     usersTableBody.appendChild(tr);
   });
 
-  // Asignar eventos de alternar estado activo/inactivo
   document.querySelectorAll(".btn-toggle-status").forEach(btn => {
     btn.addEventListener("click", (e) => {
       const uid = e.target.getAttribute("data-uid");
@@ -315,7 +309,7 @@ function renderUsersTable(users) {
 }
 
 // ====================================================
-// FUNCIÓN DE REGISTRO EXCLUSIVA (MEJOR PRÁCTICA)
+// REGISTRO DE USUARIOS POR EL SUPER ADMIN (INVITACIÓN)
 // ====================================================
 async function handleRegisterUser(e) {
   e.preventDefault();
@@ -343,7 +337,7 @@ async function handleRegisterUser(e) {
   };
 
   if (isDemoMode) {
-    // ---- REGISTRO MODO DEMO ----
+    // ---- SIMULACIÓN MODO DEMO ----
     setTimeout(() => {
       const demoUsers = JSON.parse(localStorage.getItem("teocalli_demo_users") || "[]");
       
@@ -367,14 +361,9 @@ async function handleRegisterUser(e) {
     }, 600);
   } else {
     // ---- REGISTRO EN FIRESTORE (FLUJO DE INVITACIÓN) ----
-    // MEJOR PRÁCTICA:
-    // Para evitar desloguear al Super Administrador actual usando Auth client-side,
-    // creamos el perfil del usuario en la colección `/usuarios` con una ID autogenerada.
-    // El usuario final podrá activar su cuenta ingresando por primera vez a través de un flujo 
-    // de registro público que verifique si su correo ya ha sido pre-autorizado en Firestore, 
-    // o el administrador le crea la credencial vía Consola/Admin SDK de Firebase.
+    // Guardamos el perfil con una ID autogenerada. Cuando el usuario active su cuenta en Auth
+    // con este email, su perfil quedará pre-vinculado.
     try {
-      // 1. Validar que el correo no esté duplicado en Firestore
       const usersRef = collection(db, "usuarios");
       const emailQuery = query(usersRef, where("email", "==", email));
       const querySnapshot = await getDocs(emailQuery);
@@ -385,11 +374,7 @@ async function handleRegisterUser(e) {
         return;
       }
 
-      // 2. Insertar en Firestore directamente
-      // Al ser cliente-side, dejamos que Firestore genere la ID
       const newDocRef = await addDoc(collection(db, "usuarios"), newUserProfile);
-      
-      // Actualizamos agregando el UID al documento si es necesario para mapeos manuales
       await setDoc(doc(db, "usuarios", newDocRef.id), { uid: newDocRef.id }, { merge: true });
 
       newUserForm.reset();

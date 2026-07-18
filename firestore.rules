@@ -1,39 +1,17 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper: Verifica si el usuario está autenticado
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-    
-    // Helper: Obtiene los datos del perfil del usuario que realiza la petición
-    function requestUserData() {
-      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
-    }
-    
-    // Helper: Verifica si el usuario que hace la petición está activo y es super_admin
-    function isSuperAdmin() {
-      return isAuthenticated() && 
-             exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) && 
-             requestUserData().activo == true && 
-             requestUserData().rol == "super_admin";
-    }
-
     match /usuarios/{userId} {
+      // Cualquier usuario autenticado y activo puede leer su propio documento
+      allow read: if request.auth != null && request.auth.uid == userId && resource.data.activo == true;
       
-      // Lectura:
-      // - Cualquier usuario autenticado puede leer su propio perfil si está activo.
-      // - El Super Administrador activo puede leer cualquier perfil.
-      // - Regla estricta: Si el documento tiene 'activo == false', se bloquea el acceso de lectura al propio usuario.
-      allow read: if isAuthenticated() && (
-        (request.auth.uid == userId && resource.data.activo == true) || 
-        isSuperAdmin()
-      );
-      
-      // Escritura (crear, actualizar, borrar):
-      // - Únicamente permitido para el Super Administrador activo.
-      allow write: if isSuperAdmin();
+      // El documento raíz del SuperAdmin original siempre es legible/escribible por él mismo si está autenticado
+      allow read, write: if request.auth != null && request.auth.uid == "4J5PxGAHnkM1CaNm7L24hkhkD8A2";
+
+      // El Super Administrador (validando su rol en la base de datos) puede leer, crear y actualizar cualquier usuario
+      allow get, list, create, update, delete: if request.auth != null && 
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == "super_admin" &&
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.activo == true;
     }
   }
 }

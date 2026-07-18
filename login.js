@@ -37,7 +37,7 @@ if (isDemoMode) {
   const storedUsers = localStorage.getItem("teocalli_demo_users");
   if (!storedUsers) {
     const defaultDemoUsers = [
-      { uid: "demo-uid-super-admin", nombre: "Javier Alvarado", alias: "Javi", compania: "1ra Compañía", email: "admin@teocalli.org", rol: "super_admin", activo: true },
+      { uid: "4J5PxGAHnkM1CaNm7L24hkhkD8A2", nombre: "Angel Javier Ramos Alvarado", alias: "SuperAdmin Teocalli", compania: "1ra compañia", email: "tu-email-de-registro@dominio.com", rol: "super_admin", activo: true },
       { uid: "demo-uid-admin", nombre: "Director Artístico", alias: "Director", compania: "Segunda Compañía", email: "director@teocalli.org", rol: "admin", activo: true },
       { uid: "demo-uid-dancer", nombre: "Sofía Hernández", alias: "Sofi", compania: "1ra Compañía", email: "danza@teocalli.org", rol: "bailarin", activo: true },
       { uid: "demo-uid-inactive", nombre: "Juan Pérez", alias: "Juanito", compania: "Prebase", email: "inactivo@teocalli.org", rol: "bailarin", activo: false }
@@ -76,23 +76,23 @@ loginForm.addEventListener("submit", async (e) => {
         // Validar si el usuario está activo
         if (!user.activo) {
           showLoading(false);
-          showAlert("🚫 <strong>Usuario desactivado.</strong> Contacta al Administrador.");
+          showAlert("Acceso denegado. Usuario inactivo o no registrado.");
           return;
         }
 
         // Guardar rol y perfil en sessionStorage para simular persistencia
         sessionStorage.setItem("demo_active_user", JSON.stringify(user));
-        sessionStorage.setItem("userRole", user.rol);
+        sessionStorage.setItem("user_rol", user.rol);
         
         showLoading(false);
-        // Redirigir a /compania (Hosting reescribirá a compania.html)
-        window.location.href = "/compania";
+        // Redirigir a /compania.html
+        window.location.href = "/compania.html";
       } else if (user) {
         showLoading(false);
         showAlert("Contraseña incorrecta. (Demo: Usa cualquier clave de 6+ caracteres)");
       } else {
         showLoading(false);
-        showAlert("El usuario no existe en la base de datos de simulación.<br>Prueba con: <strong>admin@teocalli.org</strong>");
+        showAlert("Acceso denegado. Usuario inactivo o no registrado.");
       }
     }, 800);
   } else {
@@ -115,43 +115,34 @@ loginForm.addEventListener("submit", async (e) => {
             // Cerrar la sesión inmediatamente en Auth
             await signOut(auth);
             showLoading(false);
-            showAlert("🚫 <strong>Usuario desactivado.</strong> Contacta al Administrador.");
+            showAlert("Acceso denegado. Usuario inactivo o no registrado.");
             return;
           }
 
-          // Guardar el rol en sessionStorage para accesos rápidos de navegación
-          sessionStorage.setItem("userRole", userData.rol);
+          // Guardar el rol en sessionStorage como 'user_rol'
+          sessionStorage.setItem("user_rol", userData.rol);
           
           showLoading(false);
-          // Redirigir a la ruta protegida /compania
-          window.location.href = "/compania";
+          // Redirigir a la página protegida /compania.html
+          window.location.href = "/compania.html";
         } else {
           // El documento en Firestore no existe
           await signOut(auth);
           showLoading(false);
-          showAlert("Tu cuenta de autenticación existe, pero no tienes un perfil de miembro en la base de datos.");
+          showAlert("Acceso denegado. Usuario inactivo o no registrado.");
         }
       } catch (firestoreError) {
-        // En caso de que las reglas de seguridad bloqueen la lectura por inactividad
-        // (por ejemplo, si el documento está activo = false y la regla de seguridad arroja Permission Denied)
+        // En caso de error de permisos de lectura por inactividad
         await signOut(auth);
         showLoading(false);
         console.error("Error al leer el perfil de Firestore:", firestoreError);
-        showAlert("🚫 <strong>Acceso denegado:</strong> Tu cuenta podría estar inactiva o sin permisos.");
+        showAlert("Acceso denegado. Usuario inactivo o no registrado.");
       }
 
     } catch (authError) {
       showLoading(false);
       console.error("Error de autenticación:", authError);
-      let msg = "Error al intentar iniciar sesión. Verifica tu conexión.";
-      if (
-        authError.code === "auth/wrong-password" || 
-        authError.code === "auth/user-not-found" ||
-        authError.code === "auth/invalid-credential"
-      ) {
-        msg = "Correo electrónico o contraseña incorrectos.";
-      }
-      showAlert(msg);
+      showAlert("Acceso denegado. Usuario inactivo o no registrado.");
     }
   }
 });
