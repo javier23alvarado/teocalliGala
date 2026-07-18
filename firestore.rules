@@ -2,54 +2,38 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Verifica si el usuario está autenticado
+    // Helper: Verifica si el usuario está autenticado
     function isAuthenticated() {
       return request.auth != null;
     }
     
-    // Obtiene los datos del usuario autenticado
-    function getUserData() {
+    // Helper: Obtiene los datos del perfil del usuario que realiza la petición
+    function requestUserData() {
       return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
     }
     
-    // Verifica si el usuario autenticado está marcado como activo
-    function isActive() {
+    // Helper: Verifica si el usuario que hace la petición está activo y es super_admin
+    function isSuperAdmin() {
       return isAuthenticated() && 
              exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) && 
-             getUserData().activo == true;
-    }
-    
-    // Obtiene el rol del usuario autenticado
-    function getRole() {
-      return getUserData().rol;
+             requestUserData().activo == true && 
+             requestUserData().rol == "super_admin";
     }
 
-    // Reglas para la colección de usuarios
     match /usuarios/{userId} {
       
-      // Lectura: 
-      // - Cualquier usuario autenticado puede leer su propio perfil (incluso si está inactivo, para permitirle ver que su cuenta está desactivada).
-      // - Un usuario activo con rol 'super_admin' o 'admin' puede leer los perfiles de todos.
+      // Lectura:
+      // - Cualquier usuario autenticado puede leer su propio perfil si está activo.
+      // - El Super Administrador activo puede leer cualquier perfil.
+      // - Regla estricta: Si el documento tiene 'activo == false', se bloquea el acceso de lectura al propio usuario.
       allow read: if isAuthenticated() && (
-        request.auth.uid == userId || 
-        (isActive() && (getRole() == 'super_admin' || getRole() == 'admin'))
+        (request.auth.uid == userId && resource.data.activo == true) || 
+        isSuperAdmin()
       );
       
-      // Creación y Eliminación:
-      // - Solo el Super Administrador activo puede crear o eliminar usuarios.
-      allow create, delete: if isActive() && getRole() == 'super_admin';
-      
-      // Actualización:
-      // - El Super Administrador activo puede actualizar cualquier campo de cualquier usuario.
-      // - El Administrador activo puede actualizar otros perfiles, pero NO puede cambiar el rol ni el estado activo/desactivado (seguridad de privilegios).
-      allow update: if isActive() && (
-        getRole() == 'super_admin' || 
-        (
-          getRole() == 'admin' && 
-          request.resource.data.rol == resource.data.rol && 
-          request.resource.data.activo == resource.data.activo
-        )
-      );
+      // Escritura (crear, actualizar, borrar):
+      // - Únicamente permitido para el Super Administrador activo.
+      allow write: if isSuperAdmin();
     }
   }
 }

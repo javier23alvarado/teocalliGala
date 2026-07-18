@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Control | Compañía Teocalli</title>
+  <meta name="description" content="Dashboard privado de gestión para miembros de la Compañía Teocalli.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="dashboard-wrapper">
+    <!-- Sidebar / Barra Lateral -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <svg class="sidebar-logo" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L14.39 6.83L19.7 7.6L15.85 11.35L16.76 16.64L12 14.14L7.24 16.64L8.15 11.35L4.3 7.6L9.61 6.83L12 2Z" fill="#D11A5B"/>
+        </svg>
+        <div class="sidebar-title text-serif">Compañía <br><span class="text-primary">Teocalli</span></div>
+      </div>
+      
+      <nav style="flex-grow: 1;">
+        <ul class="sidebar-menu">
+          <li>
+            <a class="sidebar-link active" id="nav-db-general">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              <span>Resumen General</span>
+            </a>
+          </li>
+          <!-- Este menú y su sección correspondiente se mostrarán/ocultarán según el rol en compania.js -->
+          <li id="sidebar-opt-users" style="display: none;">
+            <a class="sidebar-link" id="nav-db-users">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>Gestión de Usuarios</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-profile-badge">
+          <div class="user-avatar" id="avatar-initials">U</div>
+          <div class="user-info">
+            <div class="user-name" id="profile-name">Cargando...</div>
+            <div class="user-role-lbl" id="profile-role">...</div>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-block" style="padding: 8px 16px; font-size: 13px;" id="btn-logout">Cerrar Sesión</button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Header del Dashboard -->
+      <header class="dashboard-header">
+        <div class="dashboard-title">
+          <h2 class="text-serif" id="db-welcome-title">¡Bienvenido!</h2>
+          <p id="db-welcome-desc">Cargando perfil e información del sistema...</p>
+        </div>
+        <div>
+          <span class="badge" id="badge-active-status">...</span>
+        </div>
+      </header>
+
+      <!-- Contenedor global de alertas -->
+      <div id="db-alert" class="alert"></div>
+
+      <!-- ====================================================
+           SECCIÓN 1: RESUMEN GENERAL (Visible para Todos los Miembros Activos)
+           ==================================================== -->
+      <section id="db-section-general" class="db-section active">
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            </div>
+            <div class="metric-data">
+              <div class="metric-value" id="metric-total-dancers">--</div>
+              <div class="metric-label">Bailarines Totales</div>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div class="metric-data">
+              <div class="metric-value" id="metric-active-dancers">--</div>
+              <div class="metric-label">Miembros Activos</div>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+            </div>
+            <div class="metric-data">
+              <div class="metric-value">3</div>
+              <div class="metric-label">Compañías Teocalli</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <h3 class="panel-card-title text-serif">Anuncios de la Compañía</h3>
+          <p style="margin-bottom: 16px; color: var(--text-muted);">Aquí se listan los eventos y avisos importantes para todo el elenco.</p>
+          
+          <div style="background-color: var(--primary-light); padding: 20px; border-radius: var(--radius-sm); border-left: 4px solid var(--primary); font-size: 15px; margin-bottom: 20px;">
+            <strong>📢 Ensayo General Obligatorio:</strong> Este sábado a las 9:00 AM para preparar los repertorios de Jalisco y Veracruz. Favor de asistir puntuales con falda de ensayo y botines de danza.
+          </div>
+          
+          <div style="background-color: #F8F9FA; padding: 20px; border-radius: var(--radius-sm); border-left: 4px solid var(--text-muted); font-size: 14px;">
+            <strong>📅 Próximas Audiciones:</strong> Se abrirá convocatoria para nuevos ingresos de la sección "Prebase" el siguiente mes. El registro y la información se actualizarán próximamente.
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================
+           SECCIÓN 2: GESTIÓN DE USUARIOS (Exclusiva Super Administrador)
+           Este bloque completo de administración de usuarios será orquestado y 
+           removido del DOM para roles sin privilegios (admin, bailarin).
+           ==================================================== -->
+      <section id="db-section-users" class="db-section">
+        <div class="users-management-grid" id="admin-dashboard-container">
+          
+          <!-- Lista de Miembros -->
+          <div class="panel-card">
+            <div class="panel-card-title text-serif">
+              <span>Miembros Registrados</span>
+              <span id="users-count-badge" class="badge badge-role-bailarin">0 miembros</span>
+            </div>
+            
+            <div class="table-wrapper">
+              <table class="data-table" id="users-table">
+                <thead>
+                  <tr>
+                    <th>Nombre / Alias</th>
+                    <th>Compañía</th>
+                    <th>Contacto</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="users-table-body">
+                  <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-muted);">Cargando miembros...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Formulario de Registro de Nuevos Miembros -->
+          <div class="panel-card" id="user-registration-card">
+            <h3 class="panel-card-title text-serif">Registrar Nuevo Miembro</h3>
+            <form id="new-user-form">
+              <div class="registration-form-grid">
+                
+                <div class="form-group">
+                  <label class="form-label" for="reg-name">Nombre Completo</label>
+                  <input type="text" id="reg-name" class="form-input" required placeholder="Juan Pérez">
+                </div>
+                
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label class="form-label" for="reg-alias">Alias / Apodo</label>
+                    <input type="text" id="reg-alias" class="form-input" required placeholder="Ej: Juanito">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="reg-dob">Fecha de Nacimiento</label>
+                    <input type="date" id="reg-dob" class="form-input" required>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="reg-company">Compañía</label>
+                  <select id="reg-company" class="form-input" required style="appearance: auto;">
+                    <option value="" disabled selected>Selecciona una compañía</option>
+                    <option value="1ra Compañía">1ra Compañía</option>
+                    <option value="Segunda Compañía">Segunda Compañía</option>
+                    <option value="Prebase">Prebase</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="reg-email">Correo Electrónico</label>
+                  <input type="email" id="reg-email" class="form-input" required placeholder="juan@teocalli.org">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="reg-phone">Número de Celular</label>
+                  <input type="tel" id="reg-phone" class="form-input" required placeholder="3312345678" pattern="[0-9]{10}">
+                </div>
+
+                <div class="form-row-2" style="align-items: center; padding: 10px 0;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" for="reg-role">Rol asignado</label>
+                    <select id="reg-role" class="form-input" required style="appearance: auto;">
+                      <option value="bailarin" selected>Bailarín</option>
+                      <option value="admin">Administrador</option>
+                      <option value="super_admin">Super Administrador</option>
+                    </select>
+                  </div>
+                  
+                  <div class="form-group" style="margin-bottom: 0; display: flex; flex-direction: column; align-items: flex-end;">
+                    <label class="form-label" style="margin-bottom: 8px;">Estado del Usuario</label>
+                    <label class="switch-container">
+                      <input type="checkbox" id="reg-status" class="switch-input" checked>
+                      <div class="switch-track">
+                        <div class="switch-thumb"></div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div style="margin-top: 16px;">
+                  <button type="submit" class="btn btn-primary btn-block" id="btn-register-submit">Registrar Usuario</button>
+                </div>
+
+              </div>
+            </form>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(253, 251, 247, 0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; flex-direction: column; gap: 16px;">
+    <div style="width: 48px; height: 48px; border: 4px solid var(--primary-light); border-top-color: var(--primary); border-radius: 999px; animation: spin 1s linear infinite;"></div>
+    <span style="font-weight: 600; color: var(--primary);">Cargando panel...</span>
+  </div>
+
+  <style>
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+
+  <!-- Lógica modular del Dashboard -->
+  <script type="module" src="compania.js"></script>
+</body>
+</html>
