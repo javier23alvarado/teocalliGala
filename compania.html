@@ -9,7 +9,9 @@
 </head>
 <body>
 
+  <!-- Dashboard Wrapper -->
   <div class="dashboard-wrapper">
+    
     <!-- Sidebar / Barra Lateral -->
     <aside class="sidebar">
       <div class="sidebar-header">
@@ -27,7 +29,7 @@
               <span>Resumen General</span>
             </a>
           </li>
-          <!-- Este menú y su sección correspondiente se mostrarán/ocultarán según el rol en compania.js -->
+          <!-- Se mostrará y controlará dinámicamente según el rol en compania.js -->
           <li id="sidebar-opt-users" style="display: none;">
             <a class="sidebar-link" id="nav-db-users">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -51,24 +53,26 @@
 
     <!-- Main Content Area -->
     <main class="main-content">
-      <!-- Header del Dashboard -->
+      
+      <!-- Top Navbar (Encabezado superior de bienvenida y estado) -->
       <header class="dashboard-header">
         <div class="dashboard-title">
           <h2 class="text-serif" id="db-welcome-title">¡Bienvenido!</h2>
           <p id="db-welcome-desc">Cargando perfil e información del sistema...</p>
         </div>
-        <div>
+        <div style="display: flex; align-items: center; gap: 12px;">
           <span class="badge" id="badge-active-status">...</span>
         </div>
       </header>
 
-      <!-- Contenedor global de alertas -->
+      <!-- Contenedor global de alertas de base de datos -->
       <div id="db-alert" class="alert"></div>
 
       <!-- ====================================================
-           SECCIÓN 1: RESUMEN GENERAL (Visible para Todos los Miembros Activos)
+           SECCIÓN 1: RESUMEN GENERAL (Todos los roles activos)
            ==================================================== -->
       <section id="db-section-general" class="db-section active">
+        <!-- Grid de métricas -->
         <div class="metrics-grid">
           <div class="metric-card">
             <div class="metric-icon">
@@ -93,35 +97,32 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
             </div>
             <div class="metric-data">
-              <div class="metric-value">3</div>
+              <div class="metric-value" id="metric-companias-count">3</div>
               <div class="metric-label">Compañías Teocalli</div>
             </div>
           </div>
         </div>
 
-        <div class="panel-card">
-          <h3 class="panel-card-title text-serif">Anuncios de la Compañía</h3>
-          <p style="margin-bottom: 16px; color: var(--text-muted);">Aquí se listan los eventos y avisos importantes para todo el elenco.</p>
+        <!-- Mensaje de bienvenida personalizado según el rol (Vista del Bailarín / Admin) -->
+        <div class="panel-card" id="welcome-role-card">
+          <h3 class="panel-card-title text-serif" id="welcome-role-title">Portal de Miembro</h3>
+          <p style="margin-bottom: 16px; line-height: 1.7;" id="welcome-role-message">
+            Cargando información personalizada...
+          </p>
           
-          <div style="background-color: var(--primary-light); padding: 20px; border-radius: var(--radius-sm); border-left: 4px solid var(--primary); font-size: 15px; margin-bottom: 20px;">
-            <strong>📢 Ensayo General Obligatorio:</strong> Este sábado a las 9:00 AM para preparar los repertorios de Jalisco y Veracruz. Favor de asistir puntuales con falda de ensayo y botines de danza.
-          </div>
-          
-          <div style="background-color: #F8F9FA; padding: 20px; border-radius: var(--radius-sm); border-left: 4px solid var(--text-muted); font-size: 14px;">
-            <strong>📅 Próximas Audiciones:</strong> Se abrirá convocatoria para nuevos ingresos de la sección "Prebase" el siguiente mes. El registro y la información se actualizarán próximamente.
+          <div style="background-color: var(--primary-light); padding: 20px; border-radius: var(--radius-sm); border-left: 4px solid var(--primary); font-size: 15px; margin-top: 10px;">
+            <strong>📢 Aviso del Directorio:</strong> Mantén tus datos de contacto actualizados. Los calendarios de presentaciones y ensayos se gestionarán a través de este portal.
           </div>
         </div>
       </section>
 
       <!-- ====================================================
-           SECCIÓN 2: GESTIÓN DE USUARIOS (Exclusiva Super Administrador)
-           Este bloque completo de administración de usuarios será orquestado y 
-           removido del DOM para roles sin privilegios (admin, bailarin).
+           SECCIÓN 2: GESTIÓN DE USUARIOS (CRUD - Exclusivo Super Administrador)
            ==================================================== -->
       <section id="db-section-users" class="db-section">
-        <div class="users-management-grid" id="admin-dashboard-container">
+        <div class="users-management-grid" id="admin-crud-container">
           
-          <!-- Lista de Miembros -->
+          <!-- Lista de Miembros (Tabla CRUD) -->
           <div class="panel-card">
             <div class="panel-card-title text-serif">
               <span>Miembros Registrados</span>
@@ -137,21 +138,25 @@
                     <th>Contacto</th>
                     <th>Rol</th>
                     <th>Estado</th>
+                    <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody id="users-table-body">
                   <tr>
-                    <td colspan="5" style="text-align: center; color: var(--text-muted);">Cargando miembros...</td>
+                    <td colspan="6" style="text-align: center; color: var(--text-muted);">Cargando catálogo de miembros...</td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
 
-          <!-- Formulario de Registro de Nuevos Miembros -->
+          <!-- Formulario de Registro / Edición de Miembros -->
           <div class="panel-card" id="user-registration-card">
-            <h3 class="panel-card-title text-serif">Registrar Nuevo Miembro</h3>
+            <h3 class="panel-card-title text-serif" id="form-action-title">Registrar Nuevo Miembro</h3>
             <form id="new-user-form">
+              <!-- ID oculto para saber si editamos o creamos -->
+              <input type="hidden" id="reg-uid" value="">
+
               <div class="registration-form-grid">
                 
                 <div class="form-group">
@@ -170,13 +175,11 @@
                   </div>
                 </div>
 
+                <!-- Dropdown de Compañía: sus opciones cargan dinámicamente de Firestore -->
                 <div class="form-group">
                   <label class="form-label" for="reg-company">Compañía</label>
                   <select id="reg-company" class="form-input" required style="appearance: auto;">
-                    <option value="" disabled selected>Selecciona una compañía</option>
-                    <option value="1ra Compañía">1ra Compañía</option>
-                    <option value="Segunda Compañía">Segunda Compañía</option>
-                    <option value="Prebase">Prebase</option>
+                    <option value="" disabled selected>Cargando compañías...</option>
                   </select>
                 </div>
 
@@ -211,8 +214,9 @@
                   </div>
                 </div>
 
-                <div style="margin-top: 16px;">
+                <div style="margin-top: 16px; display: flex; gap: 12px;">
                   <button type="submit" class="btn btn-primary btn-block" id="btn-register-submit">Registrar Usuario</button>
+                  <button type="button" class="btn btn-secondary" id="btn-cancel-edit" style="display: none; width: auto;">Cancelar</button>
                 </div>
 
               </div>
@@ -228,7 +232,7 @@
   <!-- Loading Overlay -->
   <div id="loading-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(253, 251, 247, 0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; flex-direction: column; gap: 16px;">
     <div style="width: 48px; height: 48px; border: 4px solid var(--primary-light); border-top-color: var(--primary); border-radius: 999px; animation: spin 1s linear infinite;"></div>
-    <span style="font-weight: 600; color: var(--primary);">Cargando panel...</span>
+    <span style="font-weight: 600; color: var(--primary);">Cargando...</span>
   </div>
 
   <style>
@@ -237,7 +241,7 @@
     }
   </style>
 
-  <!-- Lógica modular del Dashboard -->
+  <!-- Lógica modular del Dashboard CRUD -->
   <script type="module" src="compania.js"></script>
 </body>
 </html>

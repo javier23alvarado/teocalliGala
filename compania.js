@@ -1,4 +1,4 @@
-// compania.js - Panel de control y Route Guard para Compañía Teocalli
+// compania.js - Panel de control, orquestación por roles y CRUD normalizado para Compañía Teocalli
 import { auth, db } from "./firebase-config.js";
 
 // Firebase Auth & Firestore v9.23.0 modular CDN Imports
@@ -13,10 +13,10 @@ import {
   collection, 
   addDoc, 
   onSnapshot,
-  setDoc,
-  query,
-  where,
-  getDocs
+  updateDoc,
+  deleteDoc,
+  getDocs,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 // Elementos del DOM
@@ -29,6 +29,11 @@ const dbWelcomeDesc = document.getElementById("db-welcome-desc");
 const badgeActiveStatus = document.getElementById("badge-active-status");
 const btnLogout = document.getElementById("btn-logout");
 const dbAlert = document.getElementById("db-alert");
+
+// Elementos de la vista personalizada del Miembro
+const welcomeRoleTitle = document.getElementById("welcome-role-title");
+const welcomeRoleMessage = document.getElementById("welcome-role-message");
+const welcomeRoleCard = document.getElementById("welcome-role-card");
 
 // Navegación Sidebar
 const navDbGeneral = document.getElementById("nav-db-general");
@@ -43,15 +48,37 @@ const dbSectionUsers = document.getElementById("db-section-users");
 const metricTotalDancers = document.getElementById("metric-total-dancers");
 const metricActiveDancers = document.getElementById("metric-active-dancers");
 
-// Formulario de Registro y Tabla
+// Formulario de Registro/Edición CRUD
 const newUserForm = document.getElementById("new-user-form");
+const regUidInput = document.getElementById("reg-uid");
+const regNameInput = document.getElementById("reg-name");
+const regAliasInput = document.getElementById("reg-alias");
+const regDobInput = document.getElementById("reg-dob");
+const regCompanySelect = document.getElementById("reg-company");
+const regEmailInput = document.getElementById("reg-email");
+const regPhoneInput = document.getElementById("reg-phone");
+const regRoleSelect = document.getElementById("reg-role");
+const regStatusInput = document.getElementById("reg-status");
+
+const btnRegisterSubmit = document.getElementById("btn-register-submit");
+const btnCancelEdit = document.getElementById("btn-cancel-edit");
+const formActionTitle = document.getElementById("form-action-title");
+
+// Tabla CRUD
 const usersTableBody = document.getElementById("users-table-body");
 const usersCountBadge = document.getElementById("users-count-badge");
-const userRegistrationCard = document.getElementById("user-registration-card");
 
-// Estado
+// Estado de la Aplicación
 let currentUserProfile = null;
 let unsubscribeUsers = null;
+let companiesCatalog = []; // Catálogo dinámico de compañías
+
+// Catálogo de roles estático para formatear visualizaciones
+const rolesCatalog = {
+  super_admin: "Super Administrador",
+  admin: "Administrador",
+  bailarin: "Bailarín"
+};
 
 // ====================================================
 // DETECTAR MODO DEMOSTRACIÓN (Para pruebas locales sin configurar Firebase)
@@ -65,37 +92,37 @@ try {
   isDemoMode = true;
 }
 
-function showLoading(show) {
-  loadingOverlay.style.display = show ? "flex" : "none";
-}
-
-function showAlert(message, type = "danger") {
-  dbAlert.innerHTML = message;
-  dbAlert.className = `alert alert-${type}`;
-  dbAlert.style.display = "block";
-  setTimeout(() => {
-    dbAlert.style.display = "none";
-  }, 6000);
-}
-
-// ====================================================
-// ROUTE GUARD E INICIALIZACIÓN DE SESIÓN
-// ====================================================
+// Inicializar datos simulados de compañías y usuarios en LocalStorage si es modo Demo
 if (isDemoMode) {
   console.warn("🔧 Ejecutando Dashboard en Modo Demo (Local Storage).");
+  
+  // Catálogo de compañías
+  const storedCompanies = localStorage.getItem("teocalli_demo_companies");
+  if (!storedCompanies) {
+    companiesCatalog = [
+      { id: "1ra-compania", nombre: "1ra Compañía" },
+      { id: "segunda-compania", nombre: "Segunda Compañía" },
+      { id: "prebase", nombre: "Prebase" }
+    ];
+    localStorage.setItem("teocalli_demo_companies", JSON.stringify(companiesCatalog));
+  } else {
+    companiesCatalog = JSON.parse(storedCompanies);
+  }
+
+  // Comprobar sesión
   const demoSession = sessionStorage.getItem("demo_active_user");
   if (!demoSession) {
-    // Redirigir a la ruta limpia /login si no hay sesión
     window.location.href = "/login";
   } else {
     currentUserProfile = JSON.parse(demoSession);
     initializeDashboard(currentUserProfile);
   }
 } else {
+  // ---- FLUJO REAL CON FIREBASE AUTH ----
   showLoading(true);
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
-      // Route Guard: Redirección inmediata si no hay usuario
+      // Route Guard: Redirección inmediata a login
       window.location.href = "/login";
     } else {
       try {
@@ -105,7 +132,7 @@ if (isDemoMode) {
         if (userDoc.exists()) {
           const userData = userDoc.data();
 
-          // Validar activo
+          // Validación estricta de cuenta activa
           if (userData.activo !== true) {
             await signOut(auth);
             sessionStorage.clear();
@@ -114,6 +141,9 @@ if (isDemoMode) {
           }
 
           currentUserProfile = { uid: user.uid, ...userData };
+          
+          // Cargar catálogo de compañías desde Firestore antes de inicializar vistas
+          await loadCompaniesCatalog();
           initializeDashboard(currentUserProfile);
         } else {
           await signOut(auth);
@@ -121,44 +151,94 @@ if (isDemoMode) {
           window.location.href = "/login";
         }
       } catch (error) {
-        console.error("Error al autenticar ruta protegida:", error);
+        console.error("Error al recuperar sesión de base de datos:", error);
         window.location.href = "/login";
       }
     }
   });
 }
 
+// Cargar catálogo de compañías
+async function loadCompaniesCatalog() {
+  if (isDemoMode) return;
+  try {
+    const compRef = collection(db, "companias");
+    const snapshot = await getDocs(compRef);
+    companiesCatalog = [];
+    
+    // Si la colección 'companias' está vacía en Firestore, la inicializamos con defaults
+    if (snapshot.empty) {
+      console.log("Inicializando catálogo de compañías por defecto en Firestore...");
+      const defaultCompanies = [
+        { id: "1ra-compania", nombre: "1ra Compañía" },
+        { id: "segunda-compania", nombre: "Segunda Compañía" },
+        { id: "prebase", nombre: "Prebase" }
+      ];
+      for (const comp of defaultCompanies) {
+        await setDoc(doc(db, "companias", comp.id), { nombre: comp.nombre });
+        companiesCatalog.push(comp);
+      }
+    } else {
+      snapshot.forEach(doc => {
+        companiesCatalog.push({ id: doc.id, nombre: doc.data().nombre });
+      });
+    }
+  } catch (error) {
+    console.error("Error al cargar catálogo de compañías:", error);
+    // Fallback de catálogo en caso de error
+    companiesCatalog = [
+      { id: "1ra-compania", nombre: "1ra Compañía" },
+      { id: "segunda-compania", nombre: "Segunda Compañía" },
+      { id: "prebase", nombre: "Prebase" }
+    ];
+  }
+}
+
 // ====================================================
-// ORQUESTACIÓN DE RENDERIZADO DINÁMICO POR ROL
+// ORQUESTACIÓN DE RENDERIZADO Y CONTROL DE ACCESO
 // ====================================================
 function initializeDashboard(profile) {
+  // Rellenar navbar superior y avatar
   profileName.textContent = profile.nombre;
   
-  let rolText = "Bailarín";
-  if (profile.rol === "super_admin") rolText = "Super Administrador";
-  if (profile.rol === "admin") rolText = "Administrador";
-  profileRole.textContent = rolText;
+  const roleText = rolesCatalog[profile.id_rol] || "Miembro";
+  profileRole.textContent = roleText;
 
   const initials = profile.nombre.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
   avatarInitials.textContent = initials || "U";
 
   dbWelcomeTitle.textContent = `¡Bienvenido, ${profile.alias || profile.nombre}!`;
-  dbWelcomeDesc.textContent = `Has accedido con el rol de ${rolText}.`;
+  dbWelcomeDesc.textContent = `Sesión iniciada como ${roleText}`;
   
   badgeActiveStatus.textContent = "Perfil Activo";
   badgeActiveStatus.className = "badge badge-active";
 
-  // Lógica de visualización / ocultación y remoción del DOM:
-  if (profile.rol === "super_admin") {
-    // Si es super_admin: Habilitar y mostrar la sección de creación
+  // Poblar dropdown de compañías en el formulario
+  populateCompanyDropdown();
+
+  // Orquestación estricta por roles
+  if (profile.id_rol === "super_admin") {
+    // Si es Super Administrador, habilitar vista CRUD y controles de gestión
     if (sidebarOptUsers) sidebarOptUsers.style.display = "block";
-    if (userRegistrationCard) userRegistrationCard.style.display = "block";
-    setupSuperAdminFeatures();
+    setupSuperAdminCRUD();
+    
+    // Configurar vista general personalizada para administrador
+    welcomeRoleTitle.textContent = "Consola de Super Administrador";
+    welcomeRoleMessage.textContent = "Tienes acceso completo a la base de datos de la Compañía Teocalli. Puedes crear, consultar, modificar y eliminar miembros de la plataforma, así como supervisar sus estados de acceso.";
   } else {
-    // Si es admin o bailarin: Remover del DOM por completo los controles de creación/edición de usuarios
+    // Si es administrador o bailarín estándar:
+    // Ocultar por completo o remover del DOM el listado de gestión, el menú lateral y el formulario
     if (sidebarOptUsers) sidebarOptUsers.remove();
     if (dbSectionUsers) dbSectionUsers.remove();
     if (userRegistrationCard) userRegistrationCard.remove();
+
+    // Obtener nombre legible de su compañía vinculada
+    const companyObj = companiesCatalog.find(c => c.id === profile.id_compania);
+    const companyName = companyObj ? companyObj.nombre : "Compañía General";
+
+    // Personalizar vista de bienvenida
+    welcomeRoleTitle.textContent = `Ballet Folclórico - ${companyName}`;
+    welcomeRoleMessage.innerHTML = `Hola <strong>${profile.nombre}</strong>. Has ingresado al portal interno del ballet. Tu compañía asignada es <strong>${companyName}</strong> con el nivel de acceso de <strong>${roleText}</strong>.<br><br>Próximamente tendrás acceso a tus evaluaciones técnicas, asistencia de ensayos y materiales de coreografías en esta sección.`;
     
     metricTotalDancers.textContent = "--";
     metricActiveDancers.textContent = "--";
@@ -167,13 +247,22 @@ function initializeDashboard(profile) {
   }
 }
 
-// Cerrar sesión
+// Cargar opciones en el dropdown
+function populateCompanyDropdown() {
+  regCompanySelect.innerHTML = `<option value="" disabled selected>Selecciona compañía</option>`;
+  companiesCatalog.forEach(comp => {
+    const opt = document.createElement("option");
+    opt.value = comp.id;
+    opt.textContent = comp.nombre;
+    regCompanySelect.appendChild(opt);
+  });
+}
+
+// Cierre de sesión
 btnLogout.addEventListener("click", async () => {
   showLoading(true);
   
-  if (unsubscribeUsers) {
-    unsubscribeUsers();
-  }
+  if (unsubscribeUsers) unsubscribeUsers();
 
   if (isDemoMode) {
     sessionStorage.clear();
@@ -185,26 +274,35 @@ btnLogout.addEventListener("click", async () => {
       window.location.href = "/login";
     } catch (e) {
       showLoading(false);
-      console.error("Error al desloguearse:", e);
+      console.error("Error al cerrar sesión:", e);
     }
   }
 });
 
 // ====================================================
-// LOGICA ADMINISTRATIVA (Super Admin)
+// CRUD DE USUARIOS (Solo Super Administrador)
 // ====================================================
-function setupSuperAdminFeatures() {
+function setupSuperAdminCRUD() {
+  // Manejadores de navegación de pestañas
   navDbGeneral.addEventListener("click", (e) => {
     e.preventDefault();
-    switchSection("general");
+    switchDbSection("general");
   });
 
   navDbUsers.addEventListener("click", (e) => {
     e.preventDefault();
-    switchSection("users");
+    switchDbSection("users");
   });
 
+  // Configurar envío del formulario de registro (Crear/Editar)
+  newUserForm.addEventListener("submit", handleFormSubmit);
+
+  // Configurar botón cancelar edición
+  btnCancelEdit.addEventListener("click", resetFormState);
+
+  // READ (Lectura en tiempo real)
   if (isDemoMode) {
+    // Sincronización simulada local
     const usersList = JSON.parse(localStorage.getItem("teocalli_demo_users") || "[]");
     updateMetrics(usersList);
     renderUsersTable(usersList);
@@ -218,16 +316,15 @@ function setupSuperAdminFeatures() {
       updateMetrics(usersList);
       renderUsersTable(usersList);
     }, (error) => {
-      console.error("Error en Snapshot:", error);
-      showAlert("No se pudieron cargar los datos de Firestore. Verifica tus permisos.");
+      console.error("Error al leer en tiempo real de Firestore:", error);
+      showAlert("Error de permisos en Firestore al sincronizar usuarios.");
     });
   }
 
-  newUserForm.addEventListener("submit", handleRegisterUser);
   showLoading(false);
 }
 
-function switchSection(sectionName) {
+function switchDbSection(sectionName) {
   document.querySelectorAll(".sidebar-link").forEach(l => l.classList.remove("active"));
   document.querySelectorAll(".db-section").forEach(s => s.classList.remove("active"));
 
@@ -253,43 +350,42 @@ function renderUsersTable(users) {
   usersTableBody.innerHTML = "";
 
   if (users.length === 0) {
-    usersTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center;">No hay miembros registrados.</td></tr>`;
+    usersTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center;">No hay miembros registrados.</td></tr>`;
     return;
   }
 
   users.forEach(user => {
     const tr = document.createElement("tr");
-    
+
+    // Formatear columna de compañía usando catálogo
+    const companyObj = companiesCatalog.find(c => c.id === user.id_compania);
+    const companyName = companyObj ? companyObj.nombre : user.id_compania;
+
     const activeBadge = user.activo 
       ? `<span class="badge badge-active">Activo</span>` 
       : `<span class="badge badge-inactive">Inactivo</span>`;
       
-    let roleText = "Bailarín";
-    let roleClass = "badge-role-bailarin";
-    if (user.rol === "super_admin") {
-      roleText = "Super Admin";
-      roleClass = "badge-role-superadmin";
-    } else if (user.rol === "admin") {
-      roleText = "Admin";
-      roleClass = "badge-role-admin";
-    }
+    const roleText = rolesCatalog[user.id_rol] || user.id_rol;
 
     tr.innerHTML = `
       <td>
         <strong style="font-size: 15px;">${user.nombre}</strong>
         ${user.alias ? `<br><small style="color: var(--text-muted);">"${user.alias}"</small>` : ""}
       </td>
-      <td>${user.compania}</td>
+      <td>${companyName}</td>
       <td>
         <div>${user.email}</div>
         <small style="color: var(--text-muted);">${user.celular}</small>
       </td>
-      <td><span class="badge ${roleClass}">${roleText}</span></td>
+      <td><span class="badge badge-role-bailarin">${roleText}</span></td>
+      <td>${activeBadge}</td>
       <td>
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          ${activeBadge}
-          <button class="btn btn-secondary btn-toggle-status" data-uid="${user.uid}" style="padding: 4px 8px; font-size: 11px;">
-            Alternar
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary btn-edit-user" data-uid="${user.uid}" style="padding: 6px 12px; font-size: 12px; border-radius: var(--radius-sm);">
+            Editar
+          </button>
+          <button class="btn btn-primary btn-delete-user" data-uid="${user.uid}" style="padding: 6px 12px; font-size: 12px; border-radius: var(--radius-sm); background-color: var(--danger); box-shadow: none;">
+            Eliminar
           </button>
         </div>
       </td>
@@ -297,127 +393,244 @@ function renderUsersTable(users) {
     usersTableBody.appendChild(tr);
   });
 
-  document.querySelectorAll(".btn-toggle-status").forEach(btn => {
+  // Agregar manejadores de eventos para Editar y Eliminar
+  document.querySelectorAll(".btn-edit-user").forEach(btn => {
     btn.addEventListener("click", (e) => {
       const uid = e.target.getAttribute("data-uid");
-      toggleUserActiveStatus(uid);
+      enterEditMode(uid);
+    });
+  });
+
+  document.querySelectorAll(".btn-delete-user").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const uid = e.target.getAttribute("data-uid");
+      handleDeleteUser(uid);
     });
   });
 }
 
-// Registro por invitación (escribiendo perfil en Firestore directamente)
-async function handleRegisterUser(e) {
+// ====================================================
+// CREATE (Crear) & UPDATE (Actualizar)
+// ====================================================
+async function handleFormSubmit(e) {
   e.preventDefault();
   
-  const name = document.getElementById("reg-name").value.trim();
-  const alias = document.getElementById("reg-alias").value.trim();
-  const dob = document.getElementById("reg-dob").value;
-  const company = document.getElementById("reg-company").value;
-  const email = document.getElementById("reg-email").value.trim();
-  const phone = document.getElementById("reg-phone").value.trim();
-  const role = document.getElementById("reg-role").value;
-  const isActive = document.getElementById("reg-status").checked;
+  const uid = regUidInput.value;
+  const name = regNameInput.value.trim();
+  const alias = regAliasInput.value.trim();
+  const dob = regDobInput.value;
+  const company = regCompanySelect.value;
+  const email = regEmailInput.value.trim();
+  const phone = regPhoneInput.value.trim();
+  const role = regRoleSelect.value;
+  const active = regStatusInput.checked;
 
   showLoading(true);
 
-  const newUserProfile = {
+  // Estructura normalizada del documento
+  const userData = {
     nombre: name,
     alias: alias,
     fechaNacimiento: dob,
-    compania: company,
     email: email,
     celular: phone,
-    rol: role,
-    activo: isActive
+    id_compania: company,
+    id_rol: role,
+    activo: active
   };
 
-  if (isDemoMode) {
-    // ---- MODO DEMO ----
-    setTimeout(() => {
-      const demoUsers = JSON.parse(localStorage.getItem("teocalli_demo_users") || "[]");
-      
-      if (demoUsers.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-        showLoading(false);
-        showAlert("⚠️ El correo ya está registrado en el Modo Demo.");
-        return;
-      }
-
-      const tempUid = "demo-uid-" + Math.random().toString(36).substr(2, 9);
-      demoUsers.push({ uid: tempUid, ...newUserProfile });
-      localStorage.setItem("teocalli_demo_users", JSON.stringify(demoUsers));
-
-      newUserForm.reset();
-      document.getElementById("reg-status").checked = true;
-      
-      updateMetrics(demoUsers);
-      renderUsersTable(demoUsers);
+  if (uid) {
+    // ---- UPDATE (Actualizar) ----
+    if (uid === currentUserProfile.uid && !active) {
       showLoading(false);
-      showAlert(`🎉 Miembro ${name} registrado con éxito (Simulación).`, "success");
-    }, 600);
+      showAlert("No puedes desactivar tu propia cuenta.");
+      return;
+    }
+
+    if (isDemoMode) {
+      // Simulación de actualización
+      setTimeout(() => {
+        const demoUsers = JSON.parse(localStorage.getItem("teocalli_demo_users") || "[]");
+        const idx = demoUsers.findIndex(u => u.uid === uid);
+        if (idx !== -1) {
+          demoUsers[idx] = { uid, ...userData };
+          localStorage.setItem("teocalli_demo_users", JSON.stringify(demoUsers));
+          
+          resetFormState();
+          updateMetrics(demoUsers);
+          renderUsersTable(demoUsers);
+          showLoading(false);
+          showAlert("Miembro actualizado con éxito (Demo).", "success");
+        }
+      }, 500);
+    } else {
+      // Real en Firestore
+      try {
+        const userRef = doc(db, "usuarios", uid);
+        await updateDoc(userRef, userData);
+        
+        resetFormState();
+        showLoading(false);
+        showAlert("Miembro actualizado correctamente en Firestore.", "success");
+      } catch (error) {
+        showLoading(false);
+        console.error("Error al actualizar usuario en Firestore:", error);
+        showAlert("Error al actualizar: " + error.message);
+      }
+    }
   } else {
-    // ---- REGISTRO REAL EN FIRESTORE ----
-    try {
-      const usersRef = collection(db, "usuarios");
-      const emailQuery = query(usersRef, where("email", "==", email));
-      const querySnapshot = await getDocs(emailQuery);
-      
-      if (!querySnapshot.empty) {
+    // ---- CREATE (Crear) ----
+    if (isDemoMode) {
+      // Simulación de creación
+      setTimeout(() => {
+        const demoUsers = JSON.parse(localStorage.getItem("teocalli_demo_users") || "[]");
+        
+        if (demoUsers.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+          showLoading(false);
+          showAlert("Ya existe un miembro registrado con ese correo.");
+          return;
+        }
+
+        const newUid = "demo-uid-" + Math.random().toString(36).substr(2, 9);
+        const newUser = { uid: newUid, ...userData, creadoEn: new Date().toISOString() };
+        
+        demoUsers.push(newUser);
+        localStorage.setItem("teocalli_demo_users", JSON.stringify(demoUsers));
+        
+        resetFormState();
+        updateMetrics(demoUsers);
+        renderUsersTable(demoUsers);
         showLoading(false);
-        showAlert("⚠️ Error: Ya existe un miembro registrado con ese correo electrónico.");
-        return;
+        showAlert("Miembro registrado exitosamente (Demo).", "success");
+      }, 500);
+    } else {
+      // Real en Firestore
+      try {
+        const usersRef = collection(db, "usuarios");
+        
+        // Comprobar correo único
+        const q = query(usersRef, where("email", "==", email));
+        const qSnap = await getDocs(q);
+        if (!qSnap.empty) {
+          showLoading(false);
+          showAlert("Ya existe un miembro registrado con ese correo.");
+          return;
+        }
+
+        const newUserDoc = { ...userData, creadoEn: serverTimestamp() };
+        const docRef = await addDoc(collection(db, "usuarios"), newUserDoc);
+        
+        // Agregar UID autogenerado dentro de los campos
+        await updateDoc(doc(db, "usuarios", docRef.id), { uid: docRef.id });
+
+        resetFormState();
+        showLoading(false);
+        showAlert("Miembro registrado exitosamente en Firestore.", "success");
+      } catch (error) {
+        showLoading(false);
+        console.error("Error al crear usuario en Firestore:", error);
+        showAlert("Error al registrar en Firestore: " + error.message);
       }
-
-      const newDocRef = await addDoc(collection(db, "usuarios"), newUserProfile);
-      await setDoc(doc(db, "usuarios", newDocRef.id), { uid: newDocRef.id }, { merge: true });
-
-      newUserForm.reset();
-      document.getElementById("reg-status").checked = true;
-      showLoading(false);
-      showAlert(`🎉 Perfil de ${name} pre-registrado correctamente en Firestore.`, "success");
-    } catch (error) {
-      showLoading(false);
-      console.error("Error al pre-registrar miembro en Firestore:", error);
-      showAlert("Error al escribir el registro en Firestore: " + error.message);
     }
   }
 }
 
-// Alternar estado activo
-async function toggleUserActiveStatus(uid) {
-  if (uid === currentUserProfile.uid) {
-    showAlert("⚠️ No puedes desactivar tu propio perfil de administrador.");
-    return;
-  }
-
+// Entrar en modo edición al hacer click en Editar
+async function enterEditMode(uid) {
   showLoading(true);
-
+  
+  let user = null;
+  
   if (isDemoMode) {
-    setTimeout(() => {
-      const demoUsers = JSON.parse(localStorage.getItem("teocalli_demo_users") || "[]");
-      const idx = demoUsers.findIndex(u => u.uid === uid);
-      if (idx !== -1) {
-        demoUsers[idx].activo = !demoUsers[idx].activo;
-        localStorage.setItem("teocalli_demo_users", JSON.stringify(demoUsers));
-        updateMetrics(demoUsers);
-        renderUsersTable(demoUsers);
-        showAlert("Estado del usuario modificado (Simulación).", "success");
-      }
-      showLoading(false);
-    }, 400);
+    const demoUsers = JSON.parse(localStorage.getItem("teocalli_demo_users") || "[]");
+    user = demoUsers.find(u => u.uid === uid);
   } else {
     try {
       const userRef = doc(db, "usuarios", uid);
       const userDoc = await getDoc(userRef);
       if (userDoc.exists()) {
-        const currentActive = userDoc.data().activo;
-        await setDoc(userRef, { activo: !currentActive }, { merge: true });
-        showAlert("Estado del miembro actualizado en Firestore.", "success");
+        user = { uid, ...userDoc.data() };
       }
-      showLoading(false);
     } catch (e) {
+      console.error("Error al obtener miembro:", e);
+      showAlert("No se pudo cargar el perfil para edición.");
+    }
+  }
+
+  if (user) {
+    // Llenar campos del formulario
+    regUidInput.value = user.uid;
+    regNameInput.value = user.nombre;
+    regAliasInput.value = user.alias;
+    regDobInput.value = user.fechaNacimiento;
+    regCompanySelect.value = user.id_compania;
+    regEmailInput.value = user.email;
+    regPhoneInput.value = user.celular;
+    regRoleSelect.value = user.id_rol;
+    regStatusInput.checked = user.activo;
+
+    // Cambiar textos y botones del formulario
+    formActionTitle.textContent = "Editar Miembro";
+    btnRegisterSubmit.textContent = "Guardar Cambios";
+    btnCancelEdit.style.display = "inline-block";
+    
+    // Hacer scroll suave al formulario en móvil
+    userRegistrationCard.scrollIntoView({ behavior: "smooth" });
+  }
+  
+  showLoading(false);
+}
+
+// Resetear formulario a modo de creación
+function resetFormState() {
+  newUserForm.reset();
+  regUidInput.value = "";
+  regStatusInput.checked = true;
+  formActionTitle.textContent = "Registrar Nuevo Miembro";
+  btnRegisterSubmit.textContent = "Registrar Usuario";
+  btnCancelEdit.style.display = "none";
+}
+
+// ====================================================
+// DELETE (Eliminar)
+// ====================================================
+async function handleDeleteUser(uid) {
+  if (uid === currentUserProfile.uid) {
+    showAlert("No puedes eliminar tu propio perfil de administrador.");
+    return;
+  }
+
+  const confirmDelete = confirm("¿Estás seguro de que deseas eliminar permanentemente a este miembro de la compañía?");
+  if (!confirmDelete) return;
+
+  showLoading(true);
+
+  if (isDemoMode) {
+    setTimeout(() => {
+      const demoUsers = JSON.parse(localStorage.getItem("teocalli_demo_users") || "[]");
+      const filtered = demoUsers.filter(u => u.uid !== uid);
+      localStorage.setItem("teocalli_demo_users", JSON.stringify(filtered));
+      
+      if (regUidInput.value === uid) resetFormState();
+      
+      updateMetrics(filtered);
+      renderUsersTable(filtered);
       showLoading(false);
-      console.error("Error en Firestore:", e);
-      showAlert("No tienes privilegios suficientes en Firestore para realizar esta acción.");
+      showAlert("Miembro eliminado de la simulación.", "success");
+    }, 400);
+  } else {
+    try {
+      const userRef = doc(db, "usuarios", uid);
+      await deleteDoc(userRef);
+      
+      if (regUidInput.value === uid) resetFormState();
+      
+      showLoading(false);
+      showAlert("Miembro eliminado exitosamente de Firestore.", "success");
+    } catch (error) {
+      showLoading(false);
+      console.error("Error al eliminar usuario de Firestore:", error);
+      showAlert("No tienes permisos suficientes en Firestore para eliminar este miembro.");
     }
   }
 }
