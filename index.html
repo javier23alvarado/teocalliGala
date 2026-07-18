@@ -8,7 +8,7 @@
   <meta name="description" content="Plataforma oficial del Ballet Folclórico Compañía Teocalli (Sabia de mi Tierra). Gestión y difusión de la riqueza cultural de México.">
   <meta name="keywords" content="Ballet Folclórico, Compañía Teocalli, Sabia de mi Tierra, Danza Mexicana, Folklore">
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
@@ -248,7 +248,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-    import { firebaseConfig } from "./firebase-config.js";
+    import { firebaseConfig } from "./js/firebase-config.js";
 
     async function loadPublicEvents() {
       const container = document.getElementById("public-events-container");
