@@ -22,5 +22,5 @@ const app = initializeApp(firebaseConfig);
 // Exportar servicios de Auth, Firestore, Storage y Configuración
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app);
+export const storage = getStorage(app, "gs://teocalli-sabia-de-mi-tierra.appspot.com");
 export { firebaseConfig };

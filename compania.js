@@ -181,14 +181,21 @@ function convertToWebP(file, quality = 0.8) {
           if (blob) {
             resolve(blob);
           } else {
-            reject(new Error("No se pudo convertir la imagen a WebP."));
+            console.warn("Canvas toBlob fallido, subiendo archivo original.");
+            resolve(file);
           }
         }, "image/webp", quality);
       };
-      img.onerror = (err) => reject(err);
+      img.onerror = (err) => {
+        console.warn("Error al cargar la imagen en img.onload, subiendo archivo original:", err);
+        resolve(file);
+      };
       img.src = event.target.result;
     };
-    reader.onerror = (err) => reject(err);
+    reader.onerror = (err) => {
+      console.warn("Error al leer el archivo en FileReader, subiendo archivo original:", err);
+      resolve(file);
+    };
     reader.readAsDataURL(file);
   });
 }
@@ -479,14 +486,16 @@ function setupUserProfile(profile) {
     profileAvatarImg.src = profile.fotoPerfil;
   }
 
-  // Previsualización y codificación de imagen con validación de tipo JPG/PNG
+  // Previsualización y codificación de cualquier formato de imagen
   if (profileAvatarInput && profileAvatarImg) {
     profileAvatarInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (file) {
-        const validTypes = ["image/jpeg", "image/png", "image/jpg"];
-        if (!validTypes.includes(file.type)) {
-          showAlert("Formato de archivo no válido. Solo se permiten imágenes JPG o PNG.");
+        const validExtensions = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".gif", ".bmp", ".tiff"];
+        const fileExtension = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
+        
+        if (!file.type.startsWith("image/") && !validExtensions.includes(fileExtension)) {
+          showAlert("El archivo seleccionado debe ser una imagen válida.");
           profileAvatarInput.value = ""; // Resetear input
           return;
         }
