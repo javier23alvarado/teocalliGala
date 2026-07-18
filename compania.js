@@ -48,6 +48,7 @@ const sidebarOptUsers = document.getElementById("sidebar-opt-users");
 const navDbProfile = document.getElementById("btn-perfil");
 const btnMenuToggle = document.getElementById("btn-menu-toggle");
 const sidebar = document.querySelector(".sidebar");
+const profileAvatarSidebar = document.getElementById("profile-avatar-sidebar");
 
 // Secciones del Dashboard
 const dbSectionGeneral = document.getElementById("db-section-general");
@@ -62,7 +63,9 @@ const metricActiveDancers = document.getElementById("metric-active-dancers");
 const newUserForm = document.getElementById("new-user-form");
 const userRegistrationCard = document.getElementById("user-registration-card");
 const regUidInput = document.getElementById("reg-uid");
-const regNameInput = document.getElementById("reg-name");
+const regNombresInput = document.getElementById("reg-nombres");
+const regPaternoInput = document.getElementById("reg-paterno");
+const regMaternoInput = document.getElementById("reg-materno");
 const regAliasInput = document.getElementById("reg-alias");
 const regDobInput = document.getElementById("reg-dob");
 const regSexoSelect = document.getElementById("reg-sexo");
@@ -262,15 +265,28 @@ function initializeDashboard(profile) {
   if (dashboardWrapper) dashboardWrapper.style.display = "flex";
 
   // Rellenar navbar superior y avatar
-  profileName.textContent = profile.nombre;
+  const fullName = `${profile.nombres || ""} ${profile.apellidoPaterno || ""} ${profile.apellidoMaterno || ""}`.trim();
+  profileName.textContent = fullName || profile.nombre;
   
   const roleText = rolesCatalog[profile.id_rol] || "Miembro";
   profileRole.textContent = roleText;
 
-  const initials = profile.nombre.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
-  avatarInitials.textContent = initials || "U";
+  const initials = (profile.nombres || profile.nombre || "U").split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
+  avatarInitials.textContent = initials;
 
-  dbWelcomeTitle.textContent = `¡Bienvenido, ${profile.alias || profile.nombre}!`;
+  // Mostrar foto de perfil en el sidebar si existe
+  if (profile.fotoPerfil) {
+    if (profileAvatarSidebar) {
+      profileAvatarSidebar.src = profile.fotoPerfil;
+      profileAvatarSidebar.style.display = "block";
+    }
+    avatarInitials.style.display = "none";
+  } else {
+    if (profileAvatarSidebar) profileAvatarSidebar.style.display = "none";
+    avatarInitials.style.display = "inline";
+  }
+
+  dbWelcomeTitle.textContent = `¡Bienvenido, ${profile.alias || profile.nombre || fullName}!`;
   dbWelcomeDesc.textContent = `Sesión iniciada como ${roleText}`;
   
   badgeActiveStatus.textContent = "Perfil Activo";
@@ -387,7 +403,9 @@ function setupUserProfile(profile) {
   const profileDetailsForm = document.getElementById("profile-details-form");
   const profileAvatarInput = document.getElementById("profile-avatar-input");
   const profileAvatarImg = document.getElementById("profile-avatar-img");
-  const profileFullNameInput = document.getElementById("profile-full-name");
+  const profileNombresInput = document.getElementById("profile-nombres");
+  const profilePaternoInput = document.getElementById("profile-paterno");
+  const profileMaternoInput = document.getElementById("profile-materno");
   const profileAliasInput = document.getElementById("profile-alias");
   const profilePhoneInput = document.getElementById("profile-phone");
   const profileEmailInput = document.getElementById("profile-email");
@@ -399,7 +417,9 @@ function setupUserProfile(profile) {
   if (!profileDetailsForm) return;
 
   // Llenar campos del perfil con la sesión activa
-  if (profileFullNameInput) profileFullNameInput.value = profile.nombre || "";
+  if (profileNombresInput) profileNombresInput.value = profile.nombres || "";
+  if (profilePaternoInput) profilePaternoInput.value = profile.apellidoPaterno || "";
+  if (profileMaternoInput) profileMaternoInput.value = profile.apellidoMaterno || "";
   if (profileAliasInput) profileAliasInput.value = profile.alias || "";
   if (profilePhoneInput) profilePhoneInput.value = profile.celular || "";
   if (profileEmailInput) profileEmailInput.value = profile.email || "";
@@ -408,11 +428,18 @@ function setupUserProfile(profile) {
     profileAvatarImg.src = profile.fotoPerfil;
   }
 
-  // Previsualización y codificación de imagen
+  // Previsualización y codificación de imagen con validación de tipo JPG/PNG
   if (profileAvatarInput && profileAvatarImg) {
     profileAvatarInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (file) {
+        const validTypes = ["image/jpeg", "image/png", "image/jpg"];
+        if (!validTypes.includes(file.type)) {
+          showAlert("Formato de archivo no válido. Solo se permiten imágenes JPG o PNG.");
+          profileAvatarInput.value = ""; // Resetear input
+          return;
+        }
+        
         const previewUrl = URL.createObjectURL(file);
         profileAvatarImg.src = previewUrl;
         
@@ -454,7 +481,13 @@ function setupUserProfile(profile) {
           sessionStorage.setItem("demo_active_user", JSON.stringify(demoUsers[idx]));
           
           // Actualizar navbar superior
-          profileName.textContent = demoUsers[idx].nombre;
+          const updatedName = `${demoUsers[idx].nombres || ""} ${demoUsers[idx].apellidoPaterno || ""} ${demoUsers[idx].apellidoMaterno || ""}`.trim();
+          profileName.textContent = updatedName || demoUsers[idx].nombre;
+          if (updatedData.fotoPerfil && profileAvatarSidebar) {
+            profileAvatarSidebar.src = updatedData.fotoPerfil;
+            profileAvatarSidebar.style.display = "block";
+            avatarInitials.style.display = "none";
+          }
           
           showLoading(false);
           showAlert("Datos de perfil actualizados con éxito (Demo).", "success");
@@ -466,7 +499,11 @@ function setupUserProfile(profile) {
         await updateDoc(userRef, updatedData);
         
         // Actualizar navbar
-        profileName.textContent = profile.nombre;
+        if (updatedData.fotoPerfil && profileAvatarSidebar) {
+          profileAvatarSidebar.src = updatedData.fotoPerfil;
+          profileAvatarSidebar.style.display = "block";
+          avatarInitials.style.display = "none";
+        }
         
         showLoading(false);
         showAlert("Tu perfil ha sido actualizado exitosamente.", "success");
@@ -766,7 +803,9 @@ async function handleFormSubmit(e) {
   e.preventDefault();
   
   const uid = regUidInput.value;
-  const name = regNameInput.value.trim();
+  const nombres = regNombresInput.value.trim();
+  const paterno = regPaternoInput.value.trim();
+  const materno = regMaternoInput.value.trim();
   const alias = regAliasInput.value.trim();
   const dob = regDobInput.value;
   const company = regCompanySelect.value;
@@ -780,7 +819,10 @@ async function handleFormSubmit(e) {
 
   // Estructura normalizada del documento
   const userData = {
-    nombre: name,
+    nombres: nombres,
+    apellidoPaterno: paterno,
+    apellidoMaterno: materno,
+    nombre: `${nombres} ${paterno} ${materno}`.trim(),
     alias: alias,
     fechaNacimiento: dob,
     sexo: sexo,
@@ -940,9 +982,11 @@ async function enterEditMode(uid) {
   if (user) {
     // Llenar campos del formulario
     if (regUidInput) regUidInput.value = user.uid;
-    if (regNameInput) regNameInput.value = user.nombre;
-    if (regAliasInput) regAliasInput.value = user.alias;
-    if (regDobInput) regDobInput.value = user.fechaNacimiento;
+    if (regNombresInput) regNombresInput.value = user.nombres || "";
+    if (regPaternoInput) regPaternoInput.value = user.apellidoPaterno || "";
+    if (regMaternoInput) regMaternoInput.value = user.apellidoMaterno || "";
+    if (regAliasInput) regAliasInput.value = user.alias || "";
+    if (regDobInput) regDobInput.value = user.fechaNacimiento || "";
     if (regSexoSelect) regSexoSelect.value = user.sexo || "";
     if (regCompanySelect) regCompanySelect.value = user.id_compania;
     if (regEmailInput) regEmailInput.value = user.email;
@@ -966,6 +1010,9 @@ async function enterEditMode(uid) {
 function resetFormState() {
   if (newUserForm) newUserForm.reset();
   if (regUidInput) regUidInput.value = "";
+  if (regNombresInput) regNombresInput.value = "";
+  if (regPaternoInput) regPaternoInput.value = "";
+  if (regMaternoInput) regMaternoInput.value = "";
   if (regSexoSelect) regSexoSelect.value = "";
   if (regStatusInput) regStatusInput.checked = true;
   if (formActionTitle) formActionTitle.textContent = "Registrar Nuevo Miembro";
