@@ -1,11 +1,11 @@
 // compania.js - Panel de control y Route Guard para Compañía Teocalli
 import { auth, db } from "./firebase-config.js";
 
-// Firebase Auth & Firestore CDN Imports
+// Firebase Auth & Firestore v9.23.0 modular CDN Imports
 import { 
   onAuthStateChanged, 
   signOut 
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
 import { 
   doc, 
@@ -17,7 +17,7 @@ import {
   query,
   where,
   getDocs
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 // Elementos del DOM
 const loadingOverlay = document.getElementById("loading-overlay");
@@ -65,7 +65,6 @@ try {
   isDemoMode = true;
 }
 
-// Utilidades UI
 function showLoading(show) {
   loadingOverlay.style.display = show ? "flex" : "none";
 }
@@ -86,7 +85,8 @@ if (isDemoMode) {
   console.warn("🔧 Ejecutando Dashboard en Modo Demo (Local Storage).");
   const demoSession = sessionStorage.getItem("demo_active_user");
   if (!demoSession) {
-    window.location.href = "/login.html";
+    // Redirigir a la ruta limpia /login si no hay sesión
+    window.location.href = "/login";
   } else {
     currentUserProfile = JSON.parse(demoSession);
     initializeDashboard(currentUserProfile);
@@ -95,43 +95,41 @@ if (isDemoMode) {
   showLoading(true);
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
-      // Route Guard: Redirección inmediata si no hay usuario autenticado
-      window.location.href = "/login.html";
+      // Route Guard: Redirección inmediata si no hay usuario
+      window.location.href = "/login";
     } else {
       try {
-        // Consultar el perfil en Firestore
         const userDocRef = doc(db, "usuarios", user.uid);
         const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists()) {
           const userData = userDoc.data();
 
-          // Bloqueo inmediato si la cuenta no está activa
+          // Validar activo
           if (userData.activo !== true) {
             await signOut(auth);
             sessionStorage.clear();
-            window.location.href = "/login.html";
+            window.location.href = "/login";
             return;
           }
 
           currentUserProfile = { uid: user.uid, ...userData };
           initializeDashboard(currentUserProfile);
         } else {
-          // Si el perfil no existe en la base de datos
           await signOut(auth);
           sessionStorage.clear();
-          window.location.href = "/login.html";
+          window.location.href = "/login";
         }
       } catch (error) {
-        console.error("Error al cargar perfil tras onAuthStateChanged:", error);
-        window.location.href = "/login.html";
+        console.error("Error al autenticar ruta protegida:", error);
+        window.location.href = "/login";
       }
     }
   });
 }
 
 // ====================================================
-// ORQUESTACIÓN DE ACCESO Y RENDERIZADO POR ROLES
+// ORQUESTACIÓN DE RENDERIZADO DINÁMICO POR ROL
 // ====================================================
 function initializeDashboard(profile) {
   profileName.textContent = profile.nombre;
@@ -150,19 +148,18 @@ function initializeDashboard(profile) {
   badgeActiveStatus.textContent = "Perfil Activo";
   badgeActiveStatus.className = "badge badge-active";
 
-  // Lógica de Renderizado Dinámico / Control de Acceso:
+  // Lógica de visualización / ocultación y remoción del DOM:
   if (profile.rol === "super_admin") {
-    // Si es super_admin: Habilitar y mostrar los controles de gestión de usuarios
+    // Si es super_admin: Habilitar y mostrar la sección de creación
     if (sidebarOptUsers) sidebarOptUsers.style.display = "block";
     if (userRegistrationCard) userRegistrationCard.style.display = "block";
     setupSuperAdminFeatures();
   } else {
-    // Si es admin o bailarin: Remover o deshabilitar por completo los controles administrativos del DOM
+    // Si es admin o bailarin: Remover del DOM por completo los controles de creación/edición de usuarios
     if (sidebarOptUsers) sidebarOptUsers.remove();
     if (dbSectionUsers) dbSectionUsers.remove();
     if (userRegistrationCard) userRegistrationCard.remove();
     
-    // Deshabilitar métricas internas
     metricTotalDancers.textContent = "--";
     metricActiveDancers.textContent = "--";
     
@@ -170,7 +167,7 @@ function initializeDashboard(profile) {
   }
 }
 
-// Cierre de Sesión
+// Cerrar sesión
 btnLogout.addEventListener("click", async () => {
   showLoading(true);
   
@@ -180,21 +177,21 @@ btnLogout.addEventListener("click", async () => {
 
   if (isDemoMode) {
     sessionStorage.clear();
-    window.location.href = "/login.html";
+    window.location.href = "/login";
   } else {
     try {
       await signOut(auth);
       sessionStorage.clear();
-      window.location.href = "/login.html";
+      window.location.href = "/login";
     } catch (e) {
       showLoading(false);
-      console.error("Error al cerrar sesión:", e);
+      console.error("Error al desloguearse:", e);
     }
   }
 });
 
 // ====================================================
-// NAVEGACIÓN Y SINCRONIZACIÓN DE BASE DE DATOS (Super Admin)
+// LOGICA ADMINISTRATIVA (Super Admin)
 // ====================================================
 function setupSuperAdminFeatures() {
   navDbGeneral.addEventListener("click", (e) => {
@@ -221,7 +218,7 @@ function setupSuperAdminFeatures() {
       updateMetrics(usersList);
       renderUsersTable(usersList);
     }, (error) => {
-      console.error("Error al sincronizar usuarios:", error);
+      console.error("Error en Snapshot:", error);
       showAlert("No se pudieron cargar los datos de Firestore. Verifica tus permisos.");
     });
   }
@@ -308,9 +305,7 @@ function renderUsersTable(users) {
   });
 }
 
-// ====================================================
-// REGISTRO DE USUARIOS POR EL SUPER ADMIN (INVITACIÓN)
-// ====================================================
+// Registro por invitación (escribiendo perfil en Firestore directamente)
 async function handleRegisterUser(e) {
   e.preventDefault();
   
@@ -337,7 +332,7 @@ async function handleRegisterUser(e) {
   };
 
   if (isDemoMode) {
-    // ---- SIMULACIÓN MODO DEMO ----
+    // ---- MODO DEMO ----
     setTimeout(() => {
       const demoUsers = JSON.parse(localStorage.getItem("teocalli_demo_users") || "[]");
       
@@ -360,9 +355,7 @@ async function handleRegisterUser(e) {
       showAlert(`🎉 Miembro ${name} registrado con éxito (Simulación).`, "success");
     }, 600);
   } else {
-    // ---- REGISTRO EN FIRESTORE (FLUJO DE INVITACIÓN) ----
-    // Guardamos el perfil con una ID autogenerada. Cuando el usuario active su cuenta en Auth
-    // con este email, su perfil quedará pre-vinculado.
+    // ---- REGISTRO REAL EN FIRESTORE ----
     try {
       const usersRef = collection(db, "usuarios");
       const emailQuery = query(usersRef, where("email", "==", email));
@@ -389,7 +382,7 @@ async function handleRegisterUser(e) {
   }
 }
 
-// Alternar estado de Activo/Inactivo
+// Alternar estado activo
 async function toggleUserActiveStatus(uid) {
   if (uid === currentUserProfile.uid) {
     showAlert("⚠️ No puedes desactivar tu propio perfil de administrador.");
@@ -423,8 +416,8 @@ async function toggleUserActiveStatus(uid) {
       showLoading(false);
     } catch (e) {
       showLoading(false);
-      console.error("Error al alternar estado en Firestore:", e);
-      showAlert("No tienes permisos suficientes en Firestore para realizar esta acción.");
+      console.error("Error en Firestore:", e);
+      showAlert("No tienes privilegios suficientes en Firestore para realizar esta acción.");
     }
   }
 }
