@@ -155,8 +155,8 @@ function convertToWebP(file, quality = 0.8) {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 800;
+        const MAX_WIDTH = 200;
+        const MAX_HEIGHT = 200;
         let width = img.width;
         let height = img.height;
         
@@ -568,36 +568,56 @@ function setupUserProfile(profile) {
         saveDemoProfile(null);
       }
     } else {
-      try {
-        if (profileAvatarImg.pendingFile) {
-          // Convertir a WebP en el cliente antes de subir
-          const webpBlob = await convertToWebP(profileAvatarImg.pendingFile);
-          
-          // Subir a Firebase Storage
-          const storageRef = ref(storage, `perfiles/${profile.uid}.webp`);
-          await uploadBytes(storageRef, webpBlob);
-          
-          // Obtener URL de descarga
-          const downloadUrl = await getDownloadURL(storageRef);
-          updatedData.fotoPerfil = downloadUrl;
-        }
+      const saveRealProfile = async (fotoPerfilUrl) => {
+        try {
+          if (fotoPerfilUrl) {
+            updatedData.fotoPerfil = fotoPerfilUrl;
+          }
 
-        const userRef = doc(db, "usuarios", profile.uid);
-        await updateDoc(userRef, updatedData);
-        
-        // Actualizar navbar y sidebar
-        if (updatedData.fotoPerfil && profileAvatarSidebar) {
-          profileAvatarSidebar.src = updatedData.fotoPerfil;
-          profileAvatarSidebar.style.display = "block";
-          avatarInitials.style.display = "none";
+          const userRef = doc(db, "usuarios", profile.uid);
+          await updateDoc(userRef, updatedData);
+          
+          // Actualizar navbar y sidebar
+          if (updatedData.fotoPerfil && profileAvatarSidebar) {
+            profileAvatarSidebar.src = updatedData.fotoPerfil;
+            profileAvatarSidebar.style.display = "block";
+            avatarInitials.style.display = "none";
+          }
+          
+          showLoading(false);
+          showAlert("Tu perfil ha sido actualizado exitosamente.", "success");
+        } catch (error) {
+          showLoading(false);
+          console.error("Error al actualizar perfil:", error);
+          showAlert("Error al guardar perfil en Firestore: " + error.message);
         }
-        
-        showLoading(false);
-        showAlert("Tu perfil ha sido actualizado exitosamente.", "success");
-      } catch (error) {
-        showLoading(false);
-        console.error("Error al actualizar perfil:", error);
-        showAlert("Error al guardar perfil en Firestore / Storage: " + error.message);
+      };
+
+      if (profileAvatarImg.pendingFile) {
+        convertToWebP(profileAvatarImg.pendingFile)
+          .then((webpBlob) => {
+            // Si la conversión retornó el archivo original heic/raw
+            if (!(webpBlob instanceof Blob)) {
+              const reader = new FileReader();
+              reader.readAsDataURL(webpBlob);
+              reader.onloadend = () => {
+                saveRealProfile(reader.result);
+              };
+              return;
+            }
+            const reader = new FileReader();
+            reader.readAsDataURL(webpBlob);
+            reader.onloadend = () => {
+              saveRealProfile(reader.result);
+            };
+          })
+          .catch((err) => {
+            showLoading(false);
+            console.error("Error al procesar WebP:", err);
+            showAlert("Error al comprimir la imagen.");
+          });
+      } else {
+        saveRealProfile(null);
       }
     }
   });
