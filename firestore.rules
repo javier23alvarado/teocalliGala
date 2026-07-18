@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Verifica si el usuario está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Obtiene los datos del usuario autenticado
+    function getUserData() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+    
+    // Verifica si el usuario autenticado está marcado como activo
+    function isActive() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) && 
+             getUserData().activo == true;
+    }
+    
+    // Obtiene el rol del usuario autenticado
+    function getRole() {
+      return getUserData().rol;
+    }
+
+    // Reglas para la colección de usuarios
+    match /usuarios/{userId} {
+      
+      // Lectura: 
+      // - Cualquier usuario autenticado puede leer su propio perfil (incluso si está inactivo, para permitirle ver que su cuenta está desactivada).
+      // - Un usuario activo con rol 'super_admin' o 'admin' puede leer los perfiles de todos.
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId || 
+        (isActive() && (getRole() == 'super_admin' || getRole() == 'admin'))
+      );
+      
+      // Creación y Eliminación:
+      // - Solo el Super Administrador activo puede crear o eliminar usuarios.
+      allow create, delete: if isActive() && getRole() == 'super_admin';
+      
+      // Actualización:
+      // - El Super Administrador activo puede actualizar cualquier campo de cualquier usuario.
+      // - El Administrador activo puede actualizar otros perfiles, pero NO puede cambiar el rol ni el estado activo/desactivado (seguridad de privilegios).
+      allow update: if isActive() && (
+        getRole() == 'super_admin' || 
+        (
+          getRole() == 'admin' && 
+          request.resource.data.rol == resource.data.rol && 
+          request.resource.data.activo == resource.data.activo
+        )
+      );
+    }
+  }
+}
