@@ -140,6 +140,25 @@
       </div>
     </section>
 
+    <!-- Cartelera Pública Section -->
+    <section class="companies" id="cartelera" style="background-color: var(--bg-site); border-top: 1px solid var(--border-color);">
+      <div class="container">
+        <div class="section-header" style="text-align: center; margin-bottom: 40px;">
+          <span class="section-subtitle">Cartelera Abierta</span>
+          <h2 class="section-title text-serif">Próximas Presentaciones y Talleres</h2>
+          <p style="color: var(--text-muted); max-width: 600px; margin: 10px auto 0 auto; font-size: 15px;">Entérate de nuestras próximas fechas y actividades abiertas al público general. ¡Acompáñanos a zapatear con el corazón!</p>
+        </div>
+        
+        <div class="companies-grid" id="public-events-container">
+          <!-- Spinner de Carga -->
+          <div style="grid-column: 1 / -1; text-align: center; padding: 40px 0; color: var(--primary);">
+            <div style="display: inline-block; width: 40px; height: 40px; border: 3px solid var(--primary-light); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 12px;"></div>
+            <p style="color: var(--text-muted); font-size: 14px;">Buscando próximas fechas...</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Contacto Section -->
     <section class="contact-section" id="contacto">
       <div class="container">
@@ -223,6 +242,109 @@
         navbar.classList.remove("scrolled");
       }
     });
+  </script>
+
+  <!-- Lógica dinámica de cartelera pública -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    import { firebaseConfig } from "./firebase-config.js";
+
+    async function loadPublicEvents() {
+      const container = document.getElementById("public-events-container");
+      if (!container) return;
+
+      let isDemo = false;
+      try {
+        if (firebaseConfig.apiKey === "TU_API_KEY_AQUI" || !firebaseConfig.apiKey) {
+          isDemo = true;
+        }
+      } catch (e) {
+        isDemo = true;
+      }
+
+      let events = [];
+
+      if (isDemo) {
+        // Cargar eventos del localStorage de simulación
+        const stored = localStorage.getItem("teocalli_demo_agenda") || "[]";
+        events = JSON.parse(stored).filter(e => e.tipo === "presentacion" || e.tipo === "taller");
+      } else {
+        try {
+          const app = initializeApp(firebaseConfig);
+          const db = getFirestore(app);
+          const todayStr = new Date().toISOString().split("T")[0];
+
+          // Consultar presentaciones y talleres futuros
+          const q = query(
+            collection(db, "agenda"),
+            where("fecha", ">=", todayStr)
+          );
+          const snapshot = await getDocs(q);
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.tipo === "presentacion" || data.tipo === "taller") {
+              events.push({ id: doc.id, ...data });
+            }
+          });
+        } catch (error) {
+          console.error("Error al consultar cartelera pública:", error);
+          container.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: var(--primary);">
+              <p>Ocurrió un error al cargar los eventos públicos. Por favor, intenta de nuevo más tarde.</p>
+            </div>
+          `;
+          return;
+        }
+      }
+
+      // Ordenar por fecha y hora
+      events.sort((a, b) => {
+        if (a.fecha !== b.fecha) return a.fecha.localeCompare(b.fecha);
+        return a.hora.localeCompare(b.hora);
+      });
+
+      if (events.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 40px; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+            <svg viewBox="0 0 24 24" width="48" height="48" style="fill: var(--text-muted); margin-bottom: 12px; opacity: 0.5; display: inline-block;">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <p style="color: var(--text-muted); font-size: 15px; margin: 0;">No hay eventos públicos programados en este momento. ¡Vuelve pronto!</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = "";
+      events.forEach(event => {
+        const dateObj = new Date(event.fecha + "T00:00:00");
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const dateFormatted = dateObj.toLocaleDateString('es-MX', options);
+
+        const card = document.createElement("div");
+        card.className = "company-card";
+        
+        let badgeColor = event.tipo === "presentacion" ? "#6f42c1" : "#fd7e14";
+        let costLabel = "";
+        if (event.tipo === "taller") {
+          costLabel = `<div style="font-weight: 700; color: var(--primary); margin-top: 10px; font-size: 15px;">Costo: ${event.costo > 0 ? `$${event.costo} MXN` : "Gratuito"}</div>`;
+        }
+
+        card.innerHTML = `
+          <span style="display: inline-block; background-color: ${badgeColor}; color: white; font-weight: 700; font-size: 10px; text-transform: uppercase; padding: 2px 8px; border-radius: var(--radius-sm); margin-bottom: 12px;">${event.tipo}</span>
+          <h3 class="company-name text-serif" style="margin-top: 0; font-size: 20px;">${event.titulo}</h3>
+          <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 8px;"><strong>🗓️ Fecha:</strong> ${dateFormatted} a las ${event.hora} hrs</p>
+          <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 8px;"><strong>📍 Ubicación:</strong> ${event.ubicacion || "Teocalli"}</p>
+          <p class="company-desc" style="margin-top: 10px; line-height: 1.5; font-size: 13.5px;">${event.descripcion || "Sin descripción adicional."}</p>
+          ${costLabel}
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Cargar eventos al iniciar la página
+    window.addEventListener("DOMContentLoaded", loadPublicEvents);
   </script>
 </body>
 </html>

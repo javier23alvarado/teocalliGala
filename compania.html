@@ -40,6 +40,12 @@
               <span>Mi Perfil</span>
             </a>
           </li>
+          <li>
+            <a class="sidebar-link" id="btn-agenda">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span>Agenda / Calendario</span>
+            </a>
+          </li>
         </ul>
       </nav>
 
@@ -126,6 +132,17 @@
           
           <div style="background-color: var(--primary-light); padding: 20px; border-radius: var(--radius-sm); border-left: 4px solid var(--primary); font-size: 15px; margin-top: 10px;">
             <strong>📢 Aviso del Directorio:</strong> Mantén tus datos de contacto actualizados. Los calendarios de presentaciones y ensayos se gestionarán a través de este portal.
+          </div>
+        </div>
+
+        <!-- Panel de Recordatorios de Agenda -->
+        <div class="panel-card" style="margin-top: 24px;">
+          <h3 class="panel-card-title text-serif" style="color: var(--primary); display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Recordatorios del Día y Próximos Eventos
+          </h3>
+          <div id="general-reminders-list" style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
+            <p style="color: var(--text-muted); font-size: 14px;">No tienes eventos programados para hoy.</p>
           </div>
         </div>
       </section>
@@ -395,7 +412,144 @@
         </div>
       </section>
 
+      <!-- ====================================================
+           SECCIÓN 4: AGENDA Y CALENDARIO
+           ==================================================== -->
+      <section id="db-section-agenda" class="db-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+          <div>
+            <span class="section-subtitle">Horarios y Eventos</span>
+            <h2 class="section-title text-serif" style="margin: 0;">Agenda de la Compañía</h2>
+          </div>
+          <!-- Botón visible solo para administradores (se controla en JS) -->
+          <button class="btn btn-primary" id="btn-open-event-modal" style="display: none;">+ Crear Evento</button>
+        </div>
+
+        <div class="agenda-grid">
+          <!-- Calendario Mensual -->
+          <div>
+            <div class="calendar-container">
+              <div class="calendar-header">
+                <button class="calendar-nav-btn" id="calendar-prev-month">&larr; Anterior</button>
+                <div class="calendar-title text-serif" id="calendar-current-month">Cargando Mes...</div>
+                <button class="calendar-nav-btn" id="calendar-next-month">Siguiente &rarr;</button>
+              </div>
+              <div class="calendar-weekdays">
+                <div>Dom</div>
+                <div>Lun</div>
+                <div>Mar</div>
+                <div>Mié</div>
+                <div>Jue</div>
+                <div>Vie</div>
+                <div>Sáb</div>
+              </div>
+              <div class="calendar-days" id="calendar-days-container">
+                <!-- Se poblará dinámicamente con JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Detalles del Evento Seleccionado -->
+          <div>
+            <div class="event-detail-card" id="event-detail-panel">
+              <div class="event-detail-header">
+                <span class="event-detail-badge" id="event-detail-type" style="background-color: var(--primary); display: none;">Ensayo</span>
+                <h4 class="event-detail-title" id="event-detail-title">Selecciona un evento</h4>
+              </div>
+              <div id="event-detail-body">
+                <p style="color: var(--text-muted); font-size: 14px;">Haz clic en cualquier evento o día con puntitos de color en el calendario para ver los detalles.</p>
+              </div>
+              <!-- Botón visible solo para administradores -->
+              <div id="event-admin-actions" style="display: none; gap: 8px; margin-top: 20px;">
+                <button class="btn btn-secondary" id="btn-edit-event" style="padding: 6px 12px; font-size: 13px;">Editar</button>
+                <button class="btn btn-primary" id="btn-delete-event" style="padding: 6px 12px; font-size: 13px; background-color: var(--danger); box-shadow: none;">Eliminar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </main>
+  </div>
+
+  <!-- Modal para Agregar/Editar Eventos de la Agenda (Solo Administradores) -->
+  <div class="modal-overlay" id="agenda-modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title text-serif" id="agenda-modal-title">Registrar Evento</h3>
+        <button class="modal-close" id="btn-close-agenda-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="agenda-event-form">
+          <input type="hidden" id="event-id" value="">
+          
+          <div class="form-group">
+            <label class="form-label" for="event-type-select">Tipo de Evento</label>
+            <select id="event-type-select" class="form-input" required>
+              <option value="ensayo" selected>Ensayo</option>
+              <option value="presentacion">Presentación</option>
+              <option value="taller">Taller</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="event-title-input">Título del Evento</label>
+            <input type="text" id="event-title-input" class="form-input" required placeholder="Ej: Ensayo General Técnico">
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="event-date-input">Fecha</label>
+              <input type="date" id="event-date-input" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="event-time-input">Horario / Hora de Inicio</label>
+              <input type="time" id="event-time-input" class="form-input" required>
+            </div>
+          </div>
+
+          <!-- Campo dinámico: Compañía (para Ensayos y Talleres) -->
+          <div class="form-group" id="event-group-company">
+            <label class="form-label" for="event-company-select">Compañía Destinataria</label>
+            <select id="event-company-select" class="form-input">
+              <option value="todos">Todas las Compañías</option>
+              <option value="1ra-compania">1ra Compañía</option>
+              <option value="segunda-compania">Segunda Compañía</option>
+              <option value="prebase">Prebase</option>
+            </select>
+          </div>
+
+          <!-- Campos dinámicos: Ubicación y Descripción (para Presentaciones y Talleres) -->
+          <div id="event-group-details" style="display: none;">
+            <div class="form-group">
+              <label class="form-label" for="event-location-input">Ubicación</label>
+              <input type="text" id="event-location-input" class="form-input" placeholder="Ej: Teatro Degollado, Guadalajara">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="event-desc-input">Descripción / Notas</label>
+              <textarea id="event-desc-input" class="form-input" rows="3" placeholder="Repertorio a presentar, requerimientos, etc." style="resize: none; font-family: inherit;"></textarea>
+            </div>
+          </div>
+
+          <!-- Campo dinámico: Costo (solo para Talleres) -->
+          <div class="form-group" id="event-group-cost" style="display: none;">
+            <label class="form-label" for="event-cost-input">Costo del Taller ($)</label>
+            <input type="number" id="event-cost-input" class="form-input" min="0" value="0" placeholder="0 para gratuito">
+          </div>
+
+          <!-- Campo dinámico: Selección de Bailarines Invitados (solo para Presentaciones) -->
+          <div class="form-group" id="event-group-dancers" style="display: none;">
+            <label class="form-label">Seleccionar Bailarines Convocados</label>
+            <div class="checkbox-list-scrollable" id="event-dancers-checkboxes">
+              <!-- Se cargará dinámicamente con la lista de usuarios -->
+            </div>
+            <small style="color: var(--text-muted); margin-top: 4px; display: block;">Solo los bailarines marcados podrán ver este evento en su agenda.</small>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" style="margin-top: 20px;" id="btn-submit-agenda-event">Crear Evento</button>
+        </form>
+      </div>
+    </div>
   </div>
 
   <!-- Loading Overlay -->

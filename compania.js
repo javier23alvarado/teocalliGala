@@ -51,6 +51,7 @@ const navDbGeneral = document.getElementById("btn-resumen");
 const navDbUsers = document.getElementById("btn-users");
 const sidebarOptUsers = document.getElementById("sidebar-opt-users");
 const navDbProfile = document.getElementById("btn-perfil");
+const navDbAgenda = document.getElementById("btn-agenda");
 const btnMenuToggle = document.getElementById("btn-menu-toggle");
 const sidebar = document.querySelector(".sidebar");
 const profileAvatarSidebar = document.getElementById("profile-avatar-sidebar");
@@ -385,6 +386,9 @@ function initializeDashboard(profile) {
     
     showLoading(false);
   }
+  
+  // Configurar módulo de agenda
+  setupAgendaModule();
 }
 
 // Cargar opciones en el dropdown
@@ -821,6 +825,10 @@ function switchDbSection(sectionName) {
   } else if (sectionName === "profile") {
     if (navDbProfile) navDbProfile.classList.add("active");
     if (dbSectionProfile) dbSectionProfile.classList.add("active");
+  } else if (sectionName === "agenda") {
+    if (navDbAgenda) navDbAgenda.classList.add("active");
+    const dbSectionAgenda = document.getElementById("db-section-agenda");
+    if (dbSectionAgenda) dbSectionAgenda.classList.add("active");
   }
 }
 
@@ -1173,4 +1181,673 @@ async function handleDeleteUser(uid) {
       showAlert("No tienes permisos suficientes en Firestore para eliminar este miembro.");
     }
   }
+}
+
+// ====================================================
+// MÓDULO DE AGENDA (Ensayos, Presentaciones, Talleres)
+// ====================================================
+let currentCalendarDate = new Date();
+let agendaEvents = [];
+let selectedEvent = null;
+
+// Elementos de la Agenda
+const calendarDaysContainer = document.getElementById("calendar-days-container");
+const calendarCurrentMonth = document.getElementById("calendar-current-month");
+const agendaModal = document.getElementById("agenda-modal");
+const agendaModalTitle = document.getElementById("agenda-modal-title");
+const agendaEventForm = document.getElementById("agenda-event-form");
+const eventDancersCheckboxes = document.getElementById("event-dancers-checkboxes");
+const eventDetailPanel = document.getElementById("event-detail-panel");
+const eventDetailType = document.getElementById("event-detail-type");
+const eventDetailTitle = document.getElementById("event-detail-title");
+const eventDetailBody = document.getElementById("event-detail-body");
+
+function setupAgendaModule() {
+  const calendarPrevMonth = document.getElementById("calendar-prev-month");
+  const calendarNextMonth = document.getElementById("calendar-next-month");
+  const btnOpenEventModal = document.getElementById("btn-open-event-modal");
+  const btnCloseAgendaModal = document.getElementById("btn-close-agenda-modal");
+  const eventTypeSelect = document.getElementById("event-type-select");
+  const btnEditEvent = document.getElementById("btn-edit-event");
+  const btnDeleteEvent = document.getElementById("btn-delete-event");
+  
+  if (navDbAgenda) {
+    navDbAgenda.addEventListener("click", (e) => {
+      e.preventDefault();
+      switchDbSection("agenda");
+      closeSidebarOnMobile();
+      renderCalendar();
+    });
+  }
+
+  if (calendarPrevMonth) {
+    calendarPrevMonth.addEventListener("click", () => {
+      currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+      renderCalendar();
+    });
+  }
+
+  if (calendarNextMonth) {
+    calendarNextMonth.addEventListener("click", () => {
+      currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+      renderCalendar();
+    });
+  }
+
+  if (btnOpenEventModal) {
+    btnOpenEventModal.addEventListener("click", () => {
+      openAgendaFormModal();
+    });
+  }
+
+  if (btnCloseAgendaModal && agendaModal) {
+    btnCloseAgendaModal.addEventListener("click", () => {
+      agendaModal.style.display = "none";
+    });
+  }
+
+  if (eventTypeSelect) {
+    eventTypeSelect.addEventListener("change", triggerFormFieldsVisibility);
+  }
+
+  if (btnEditEvent) {
+    btnEditEvent.addEventListener("click", () => {
+      if (selectedEvent) {
+        openAgendaFormModal("", selectedEvent);
+      }
+    });
+  }
+
+  if (btnDeleteEvent) {
+    btnDeleteEvent.addEventListener("click", handleDeleteEvent);
+  }
+
+  if (agendaEventForm) {
+    agendaEventForm.addEventListener("submit", handleAgendaFormSubmit);
+  }
+
+  // Mostrar botón de crear evento solo si es administrador
+  if (currentUserProfile && (currentUserProfile.id_rol === "super_admin" || currentUserProfile.id_rol === "admin")) {
+    if (btnOpenEventModal) btnOpenEventModal.style.display = "inline-block";
+  }
+
+  // Carga inicial y escucha en tiempo real
+  if (isDemoMode) {
+    const storedAgenda = localStorage.getItem("teocalli_demo_agenda");
+    if (!storedAgenda) {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      
+      const defaultEvents = [
+        {
+          id: "demo-event-1",
+          tipo: "ensayo",
+          titulo: "Ensayo General de Compañía",
+          fecha: todayStr,
+          hora: "19:30",
+          id_compania: "1ra-compania",
+          creadoPor: "demo-admin",
+          creadoEn: new Date().toISOString()
+        },
+        {
+          id: "demo-event-2",
+          tipo: "presentacion",
+          titulo: "Presentación Teatro Degollado",
+          fecha: tomorrowStr,
+          hora: "20:00",
+          ubicacion: "Teatro Degollado, Guadalajara Centro",
+          descripcion: "Presentación especial de Fandango y Danza de los Viejitos.",
+          invitados: [currentUserProfile.uid],
+          creadoPor: "demo-admin",
+          creadoEn: new Date().toISOString()
+        },
+        {
+          id: "demo-event-3",
+          tipo: "taller",
+          titulo: "Taller de Zapateado Veracruzano",
+          fecha: tomorrowStr,
+          hora: "10:00",
+          ubicacion: "Salón Principal Teocalli",
+          descripcion: "Taller técnico de perfeccionamiento de zapateado veracruzano.",
+          costo: 150,
+          id_compania: "todos",
+          creadoPor: "demo-admin",
+          creadoEn: new Date().toISOString()
+        }
+      ];
+      localStorage.setItem("teocalli_demo_agenda", JSON.stringify(defaultEvents));
+      agendaEvents = defaultEvents;
+    } else {
+      agendaEvents = JSON.parse(storedAgenda);
+    }
+    renderCalendar();
+    updateReminders();
+  } else {
+    // Sincronizar en tiempo real desde Firestore
+    const q = collection(db, "agenda");
+    onSnapshot(q, (snapshot) => {
+      agendaEvents = [];
+      snapshot.forEach(doc => {
+        agendaEvents.push({ id: doc.id, ...doc.data() });
+      });
+      renderCalendar();
+      updateReminders();
+    }, (err) => {
+      console.error("Error al cargar la agenda de Firestore:", err);
+      showAlert("Error de permisos en Firestore al sincronizar la agenda.");
+    });
+  }
+}
+
+function shouldUserSeeEvent(event) {
+  if (!currentUserProfile) return false;
+  
+  const role = currentUserProfile.id_rol;
+  if (role === "super_admin" || role === "admin") return true;
+  
+  if (event.tipo === "ensayo" || event.tipo === "taller") {
+    return event.id_compania === "todos" || event.id_compania === currentUserProfile.id_compania;
+  }
+  
+  if (event.tipo === "presentacion") {
+    return Array.isArray(event.invitados) && event.invitados.includes(currentUserProfile.uid);
+  }
+  
+  return false;
+}
+
+function renderCalendar() {
+  if (!calendarDaysContainer || !calendarCurrentMonth) return;
+  
+  calendarDaysContainer.innerHTML = "";
+  
+  const year = currentCalendarDate.getFullYear();
+  const month = currentCalendarDate.getMonth();
+  
+  const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  calendarCurrentMonth.textContent = `${monthNames[month]} ${year}`;
+  
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const prevLastDay = new Date(year, month, 0).getDate();
+  
+  // Días del mes anterior
+  for (let i = firstDayIndex; i > 0; i--) {
+    const dayNum = prevLastDay - i + 1;
+    const cell = createCalendarCell(year, month - 1, dayNum, true);
+    calendarDaysContainer.appendChild(cell);
+  }
+  
+  // Días del mes actual
+  const today = new Date();
+  for (let i = 1; i <= lastDay; i++) {
+    const isToday = today.getDate() === i && today.getMonth() === month && today.getFullYear() === year;
+    const cell = createCalendarCell(year, month, i, false, isToday);
+    calendarDaysContainer.appendChild(cell);
+  }
+  
+  // Días del mes siguiente
+  const totalCells = firstDayIndex + lastDay;
+  const remainingCells = (7 - (totalCells % 7)) % 7;
+  for (let i = 1; i <= remainingCells; i++) {
+    const cell = createCalendarCell(year, month + 1, i, true);
+    calendarDaysContainer.appendChild(cell);
+  }
+}
+
+function createCalendarCell(year, month, day, isOtherMonth, isToday = false) {
+  const cellDate = new Date(year, month, day);
+  const dateString = cellDate.toISOString().split("T")[0];
+  
+  const cell = document.createElement("div");
+  cell.className = `calendar-day-cell${isOtherMonth ? " other-month" : ""}${isToday ? " today" : ""}`;
+  cell.dataset.date = dateString;
+  
+  cell.innerHTML = `
+    <div class="calendar-day-num">${day}</div>
+    <div class="calendar-day-events"></div>
+  `;
+  
+  const dayEvents = agendaEvents.filter(event => event.fecha === dateString && shouldUserSeeEvent(event));
+  const eventsContainer = cell.querySelector(".calendar-day-events");
+  
+  dayEvents.forEach(event => {
+    const dot = document.createElement("div");
+    dot.className = `calendar-event-dot event-${event.tipo}`;
+    dot.textContent = event.titulo;
+    dot.title = `${event.titulo} (${event.hora})`;
+    dot.dataset.eventId = event.id;
+    
+    dot.addEventListener("click", (e) => {
+      e.stopPropagation();
+      showEventDetails(event);
+    });
+    
+    eventsContainer.appendChild(dot);
+  });
+  
+  cell.addEventListener("click", () => {
+    if (dayEvents.length > 0) {
+      showEventDetails(dayEvents[0]);
+    } else {
+      if (currentUserProfile && (currentUserProfile.id_rol === "super_admin" || currentUserProfile.id_rol === "admin")) {
+        openAgendaFormModal(dateString);
+      }
+    }
+  });
+  
+  return cell;
+}
+
+function showEventDetails(event) {
+  selectedEvent = event;
+  
+  if (!eventDetailPanel || !eventDetailType || !eventDetailTitle || !eventDetailBody) return;
+  
+  eventDetailType.style.display = "inline-block";
+  eventDetailType.textContent = event.tipo;
+  eventDetailType.className = `event-detail-badge event-${event.tipo}`;
+  
+  eventDetailTitle.textContent = event.titulo;
+  
+  const dateObj = new Date(event.fecha + "T00:00:00");
+  const formattedDate = dateObj.toLocaleDateString("es-ES", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  
+  let bodyHtml = `
+    <div class="event-detail-item">
+      <span class="event-detail-label">🕒 Hora:</span>
+      <span class="event-detail-value">${event.hora}</span>
+    </div>
+    <div class="event-detail-item">
+      <span class="event-detail-label">📅 Fecha:</span>
+      <span class="event-detail-value">${formattedDate}</span>
+    </div>
+  `;
+  
+  if (event.tipo === "ensayo" || event.tipo === "taller") {
+    const companyName = event.id_compania === "todos" ? "Todas las Compañías" : (companiesCatalog.find(c => c.id === event.id_compania)?.nombre || event.id_compania);
+    bodyHtml += `
+      <div class="event-detail-item">
+        <span class="event-detail-label">👥 Compañía:</span>
+        <span class="event-detail-value">${companyName}</span>
+      </div>
+    `;
+  }
+  
+  if (event.tipo === "presentacion" || event.tipo === "taller") {
+    bodyHtml += `
+      <div class="event-detail-item">
+        <span class="event-detail-label">📍 Ubicación:</span>
+        <span class="event-detail-value">${event.ubicacion || "No especificada"}</span>
+      </div>
+      <div class="event-detail-item" style="flex-direction: column; gap: 4px;">
+        <span class="event-detail-label">📝 Descripción:</span>
+        <span class="event-detail-value" style="white-space: pre-wrap;">${event.descripcion || "Sin descripción."}</span>
+      </div>
+    `;
+  }
+  
+  if (event.tipo === "taller") {
+    const costText = event.costo > 0 ? `$${event.costo} MXN` : "Gratuito / Incluido";
+    bodyHtml += `
+      <div class="event-detail-item">
+        <span class="event-detail-label">💰 Costo:</span>
+        <span class="event-detail-value" style="font-weight: bold; color: var(--primary);">${costText}</span>
+      </div>
+    `;
+  }
+  
+  if (event.tipo === "presentacion") {
+    let invitedDancersText = "Nadie convocado.";
+    if (Array.isArray(event.invitados) && event.invitados.length > 0) {
+      const names = event.invitados.map(uid => {
+        const userObj = currentUsersData.find(u => u.uid === uid);
+        return userObj ? userObj.nombre : "Bailarín";
+      });
+      invitedDancersText = names.join(", ");
+    }
+    bodyHtml += `
+      <div class="event-detail-item" style="flex-direction: column; gap: 4px;">
+        <span class="event-detail-label">💃 Convocados:</span>
+        <span class="event-detail-value">${invitedDancersText}</span>
+      </div>
+    `;
+  }
+  
+  eventDetailBody.innerHTML = bodyHtml;
+  
+  const eventAdminActions = document.getElementById("event-admin-actions");
+  if (eventAdminActions) {
+    if (currentUserProfile && (currentUserProfile.id_rol === "super_admin" || currentUserProfile.id_rol === "admin")) {
+      eventAdminActions.style.display = "flex";
+    } else {
+      eventAdminActions.style.display = "none";
+    }
+  }
+}
+
+function populateDancersCheckboxes() {
+  if (!eventDancersCheckboxes) return;
+  eventDancersCheckboxes.innerHTML = "";
+  
+  const dancers = currentUsersData.filter(u => u.id_rol === "bailarin" && u.activo === true);
+  
+  if (dancers.length === 0) {
+    eventDancersCheckboxes.innerHTML = `<p style="color: var(--text-muted); font-size: 12px; margin: 0;">No hay bailarines activos registrados.</p>`;
+    return;
+  }
+  
+  dancers.forEach(dancer => {
+    const label = document.createElement("label");
+    label.className = "checkbox-item";
+    label.innerHTML = `
+      <input type="checkbox" name="invited-dancer" value="${dancer.uid}">
+      <span>${dancer.nombre} (${companiesCatalog.find(c => c.id === dancer.id_compania)?.nombre || dancer.id_compania})</span>
+    `;
+    eventDancersCheckboxes.appendChild(label);
+  });
+}
+
+function openAgendaFormModal(dateString = "", eventToEdit = null) {
+  if (!agendaModal || !agendaModalTitle || !agendaEventForm) return;
+  
+  agendaEventForm.reset();
+  
+  const eventIdInput = document.getElementById("event-id");
+  const eventTypeSelect = document.getElementById("event-type-select");
+  const eventTitleInput = document.getElementById("event-title-input");
+  const eventDateInput = document.getElementById("event-date-input");
+  const eventTimeInput = document.getElementById("event-time-input");
+  const eventCompanySelect = document.getElementById("event-company-select");
+  const eventLocationInput = document.getElementById("event-location-input");
+  const eventDescInput = document.getElementById("event-desc-input");
+  const eventCostInput = document.getElementById("event-cost-input");
+  
+  populateDancersCheckboxes();
+  
+  if (eventToEdit) {
+    agendaModalTitle.textContent = "Editar Evento";
+    if (eventIdInput) eventIdInput.value = eventToEdit.id;
+    if (eventTypeSelect) eventTypeSelect.value = eventToEdit.tipo;
+    if (eventTitleInput) eventTitleInput.value = eventToEdit.titulo;
+    if (eventDateInput) eventDateInput.value = eventToEdit.fecha;
+    if (eventTimeInput) eventTimeInput.value = eventToEdit.hora;
+    
+    if (eventToEdit.tipo === "ensayo" || eventToEdit.tipo === "taller") {
+      if (eventCompanySelect) eventCompanySelect.value = eventToEdit.id_compania || "todos";
+    }
+    
+    if (eventToEdit.tipo === "presentacion" || eventToEdit.tipo === "taller") {
+      if (eventLocationInput) eventLocationInput.value = eventToEdit.ubicacion || "";
+      if (eventDescInput) eventDescInput.value = eventToEdit.descripcion || "";
+    }
+    
+    if (eventToEdit.tipo === "taller") {
+      if (eventCostInput) eventCostInput.value = eventToEdit.costo || 0;
+    }
+    
+    if (eventToEdit.tipo === "presentacion" && Array.isArray(eventToEdit.invitados)) {
+      eventToEdit.invitados.forEach(uid => {
+        const cb = document.querySelector(`input[name="invited-dancer"][value="${uid}"]`);
+        if (cb) cb.checked = true;
+      });
+    }
+  } else {
+    agendaModalTitle.textContent = "Crear Evento";
+    if (eventIdInput) eventIdInput.value = "";
+    if (eventDateInput && dateString) eventDateInput.value = dateString;
+  }
+  
+  triggerFormFieldsVisibility();
+  agendaModal.style.display = "flex";
+}
+
+function triggerFormFieldsVisibility() {
+  const type = document.getElementById("event-type-select").value;
+  
+  const groupCompany = document.getElementById("event-group-company");
+  const groupDetails = document.getElementById("event-group-details");
+  const groupCost = document.getElementById("event-group-cost");
+  const groupDancers = document.getElementById("event-group-dancers");
+  
+  if (type === "ensayo") {
+    if (groupCompany) groupCompany.style.display = "block";
+    if (groupDetails) groupDetails.style.display = "none";
+    if (groupCost) groupCost.style.display = "none";
+    if (groupDancers) groupDancers.style.display = "none";
+  } else if (type === "presentacion") {
+    if (groupCompany) groupCompany.style.display = "none";
+    if (groupDetails) groupDetails.style.display = "block";
+    if (groupCost) groupCost.style.display = "none";
+    if (groupDancers) groupDancers.style.display = "block";
+  } else if (type === "taller") {
+    if (groupCompany) groupCompany.style.display = "block";
+    if (groupDetails) groupDetails.style.display = "block";
+    if (groupCost) groupCost.style.display = "block";
+    if (groupDancers) groupDancers.style.display = "none";
+  }
+}
+
+async function handleAgendaFormSubmit(e) {
+  e.preventDefault();
+  
+  const eventIdInput = document.getElementById("event-id");
+  const eventTypeSelect = document.getElementById("event-type-select");
+  const eventTitleInput = document.getElementById("event-title-input");
+  const eventDateInput = document.getElementById("event-date-input");
+  const eventTimeInput = document.getElementById("event-time-input");
+  const eventCompanySelect = document.getElementById("event-company-select");
+  const eventLocationInput = document.getElementById("event-location-input");
+  const eventDescInput = document.getElementById("event-desc-input");
+  const eventCostInput = document.getElementById("event-cost-input");
+  
+  const id = eventIdInput ? eventIdInput.value : "";
+  const tipo = eventTypeSelect.value;
+  const titulo = eventTitleInput.value.trim();
+  const fecha = eventDateInput.value;
+  const hora = eventTimeInput.value;
+  
+  showLoading(true);
+  
+  const eventData = {
+    tipo,
+    titulo,
+    fecha,
+    hora,
+    creadoPor: currentUserProfile.uid,
+    creadoEn: isDemoMode ? new Date().toISOString() : serverTimestamp()
+  };
+  
+  if (tipo === "ensayo" || tipo === "taller") {
+    eventData.id_compania = eventCompanySelect.value;
+  }
+  
+  if (tipo === "presentacion" || tipo === "taller") {
+    eventData.ubicacion = eventLocationInput.value.trim();
+    eventData.descripcion = eventDescInput.value.trim();
+  }
+  
+  if (tipo === "taller") {
+    eventData.costo = Number(eventCostInput.value) || 0;
+  }
+  
+  if (tipo === "presentacion") {
+    const checkboxes = document.querySelectorAll('input[name="invited-dancer"]:checked');
+    eventData.invitados = Array.from(checkboxes).map(cb => cb.value);
+  }
+  
+  if (isDemoMode) {
+    setTimeout(() => {
+      let demoAgenda = JSON.parse(localStorage.getItem("teocalli_demo_agenda") || "[]");
+      
+      if (id) {
+        const idx = demoAgenda.findIndex(evt => evt.id === id);
+        if (idx !== -1) {
+          demoAgenda[idx] = { id, ...eventData };
+          showAlert("Evento actualizado con éxito.", "success");
+        }
+      } else {
+        const newId = "demo-event-" + Math.random().toString(36).substr(2, 9);
+        demoAgenda.push({ id: newId, ...eventData });
+        showAlert("Evento registrado con éxito.", "success");
+      }
+      
+      localStorage.setItem("teocalli_demo_agenda", JSON.stringify(demoAgenda));
+      agendaEvents = demoAgenda;
+      
+      if (agendaModal) agendaModal.style.display = "none";
+      renderCalendar();
+      updateReminders();
+      showLoading(false);
+    }, 500);
+  } else {
+    try {
+      if (id) {
+        await updateDoc(doc(db, "agenda", id), eventData);
+        showAlert("Evento actualizado con éxito.", "success");
+      } else {
+        await addDoc(collection(db, "agenda"), eventData);
+        showAlert("Evento registrado con éxito.", "success");
+      }
+      
+      if (agendaModal) agendaModal.style.display = "none";
+      showLoading(false);
+    } catch (error) {
+      showLoading(false);
+      console.error("Error al guardar evento:", error);
+      showAlert("Error al guardar evento: " + error.message);
+    }
+  }
+}
+
+async function handleDeleteEvent() {
+  if (!selectedEvent) return;
+  
+  const confirmDelete = confirm("¿Estás seguro de que deseas eliminar este evento de la agenda?");
+  if (!confirmDelete) return;
+  
+  showLoading(true);
+  
+  if (isDemoMode) {
+    setTimeout(() => {
+      let demoAgenda = JSON.parse(localStorage.getItem("teocalli_demo_agenda") || "[]");
+      demoAgenda = demoAgenda.filter(evt => evt.id !== selectedEvent.id);
+      localStorage.setItem("teocalli_demo_agenda", JSON.stringify(demoAgenda));
+      
+      agendaEvents = demoAgenda;
+      selectedEvent = null;
+      
+      if (eventDetailTitle && eventDetailBody && eventDetailType) {
+        eventDetailTitle.textContent = "Selecciona un evento";
+        eventDetailBody.innerHTML = `<p style="color: var(--text-muted); font-size: 14px;">Haz clic en cualquier evento o día con puntitos de color en el calendario para ver los detalles.</p>`;
+        eventDetailType.style.display = "none";
+      }
+      
+      const eventAdminActions = document.getElementById("event-admin-actions");
+      if (eventAdminActions) eventAdminActions.style.display = "none";
+      
+      renderCalendar();
+      updateReminders();
+      showLoading(false);
+      showAlert("Evento eliminado con éxito.", "success");
+    }, 400);
+  } else {
+    try {
+      await deleteDoc(doc(db, "agenda", selectedEvent.id));
+      selectedEvent = null;
+      
+      if (eventDetailTitle && eventDetailBody && eventDetailType) {
+        eventDetailTitle.textContent = "Selecciona un evento";
+        eventDetailBody.innerHTML = `<p style="color: var(--text-muted); font-size: 14px;">Haz clic en cualquier evento o día con puntitos de color en el calendario para ver los detalles.</p>`;
+        eventDetailType.style.display = "none";
+      }
+      
+      const eventAdminActions = document.getElementById("event-admin-actions");
+      if (eventAdminActions) eventAdminActions.style.display = "none";
+      
+      showLoading(false);
+      showAlert("Evento eliminado con éxito.", "success");
+    } catch (error) {
+      showLoading(false);
+      console.error("Error al borrar evento:", error);
+      showAlert("No tienes permisos suficientes en Firestore para borrar este evento.");
+    }
+  }
+}
+
+function updateReminders() {
+  const generalRemindersList = document.getElementById("general-reminders-list");
+  if (!generalRemindersList) return;
+  
+  generalRemindersList.innerHTML = "";
+  
+  const todayStr = new Date().toISOString().split("T")[0];
+  
+  const visibleEvents = agendaEvents
+    .filter(shouldUserSeeEvent)
+    .sort((a, b) => {
+      if (a.fecha !== b.fecha) return a.fecha.localeCompare(b.fecha);
+      return a.hora.localeCompare(b.hora);
+    });
+    
+  const todayEvents = visibleEvents.filter(e => e.fecha === todayStr);
+  
+  const next7Days = [];
+  const todayObj = new Date();
+  for (let i = 1; i <= 7; i++) {
+    const d = new Date(); d.setDate(todayObj.getDate() + i);
+    next7Days.push(d.toISOString().split("T")[0]);
+  }
+  const upcomingEvents = visibleEvents.filter(e => next7Days.includes(e.fecha));
+  
+  let html = "";
+  
+  if (todayEvents.length === 0 && upcomingEvents.length === 0) {
+    generalRemindersList.innerHTML = `<p style="color: var(--text-muted); font-size: 14px; margin: 0;">No tienes eventos programados para hoy ni en los próximos días.</p>`;
+    return;
+  }
+  
+  if (todayEvents.length > 0) {
+    html += `<div style="font-weight: 700; font-size: 13px; color: var(--primary); text-transform: uppercase; margin-bottom: 8px;">📅 Hoy:</div>`;
+    todayEvents.forEach(e => {
+      html += createReminderItemHtml(e);
+    });
+  }
+  
+  if (upcomingEvents.length > 0) {
+    html += `<div style="font-weight: 700; font-size: 13px; color: #6f42c1; text-transform: uppercase; margin-top: 15px; margin-bottom: 8px;">🗓️ Próximos días:</div>`;
+    upcomingEvents.forEach(e => {
+      html += createReminderItemHtml(e);
+    });
+  }
+  
+  generalRemindersList.innerHTML = html;
+}
+
+function createReminderItemHtml(event) {
+  let colorLabel = "var(--primary)";
+  if (event.tipo === "presentacion") colorLabel = "#6f42c1";
+  if (event.tipo === "taller") colorLabel = "#fd7e14";
+  
+  const dateObj = new Date(event.fecha + "T00:00:00");
+  const dateText = dateObj.toLocaleDateString("es-ES", { month: "short", day: "numeric" });
+  
+  let extra = "";
+  if (event.tipo === "presentacion" || event.tipo === "taller") {
+    extra = ` - <em>${event.ubicacion}</em>`;
+  }
+  
+  return `
+    <div style="background-color: var(--bg-site); border: 1px solid var(--border-color); border-left: 5px solid ${colorLabel}; padding: 12px; border-radius: var(--radius-sm); font-size: 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px;">
+      <div>
+        <span style="font-weight: 700; text-transform: uppercase; font-size: 10px; color: ${colorLabel}; display: block; margin-bottom: 2px;">${event.tipo}</span>
+        <strong>${event.titulo}</strong>${extra}
+      </div>
+      <div style="text-align: right; flex-shrink: 0; font-size: 13px;">
+        <span style="font-weight: 700; display: block; color: var(--text-main);">${dateText}</span>
+        <small style="color: var(--text-muted);">${event.hora}</small>
+      </div>
+    </div>
+  `;
 }
