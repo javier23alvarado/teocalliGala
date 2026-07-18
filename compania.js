@@ -1,11 +1,16 @@
-// compania.js - Panel de control, orquestación por roles, CRUD y perfil unificado para Compañía Teocalli
-import { auth, db, firebaseConfig } from "./firebase-config.js";
-
 // Firebase Auth & Firestore v9.23.0 modular CDN Imports
+import { auth, db, storage, firebaseConfig } from "./firebase-config.js";
+
 import { 
   onAuthStateChanged, 
   signOut 
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
 
 import { 
   doc, 
@@ -140,6 +145,52 @@ function calculateAge(dobString) {
     age--;
   }
   return age >= 0 ? age : 0;
+}
+
+// Convertir una imagen a formato WebP y comprimirla en el cliente usando HTML5 Canvas
+function convertToWebP(file, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error("No se pudo convertir la imagen a WebP."));
+          }
+        }, "image/webp", quality);
+      };
+      img.onerror = (err) => reject(err);
+      img.src = event.target.result;
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
 }
 
 // ====================================================
@@ -440,14 +491,12 @@ function setupUserProfile(profile) {
           return;
         }
         
+        // Guardar archivo original para ser procesado al guardar
+        profileAvatarImg.pendingFile = file;
+
+        // Previsualizar la imagen usando URL temporal
         const previewUrl = URL.createObjectURL(file);
         profileAvatarImg.src = previewUrl;
-        
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          profileAvatarImg.dataset.pendingImage = reader.result;
-        };
-        reader.readAsDataURL(file);
       }
     });
   }
@@ -459,32 +508,30 @@ function setupUserProfile(profile) {
 
     const newAlias = profileAliasInput.value.trim();
     const newPhone = profilePhoneInput.value.trim();
-    const pendingImage = profileAvatarImg.dataset.pendingImage;
 
     const updatedData = {
       alias: newAlias,
       celular: newPhone
     };
 
-    if (pendingImage) {
-      updatedData.fotoPerfil = pendingImage;
-    }
-
     if (isDemoMode) {
-      setTimeout(() => {
+      const saveDemoProfile = (fotoPerfilUrl) => {
         const demoUsers = JSON.parse(localStorage.getItem("teocalli_demo_users") || "[]");
         const idx = demoUsers.findIndex(u => u.uid === profile.uid);
         if (idx !== -1) {
+          if (fotoPerfilUrl) {
+            updatedData.fotoPerfil = fotoPerfilUrl;
+          }
           demoUsers[idx] = { ...demoUsers[idx], ...updatedData };
           localStorage.setItem("teocalli_demo_users", JSON.stringify(demoUsers));
           
           sessionStorage.setItem("demo_active_user", JSON.stringify(demoUsers[idx]));
           
-          // Actualizar navbar superior
+          // Actualizar navbar superior e imagen del sidebar
           const updatedName = `${demoUsers[idx].nombres || ""} ${demoUsers[idx].apellidoPaterno || ""} ${demoUsers[idx].apellidoMaterno || ""}`.trim();
           profileName.textContent = updatedName || demoUsers[idx].nombre;
-          if (updatedData.fotoPerfil && profileAvatarSidebar) {
-            profileAvatarSidebar.src = updatedData.fotoPerfil;
+          if (demoUsers[idx].fotoPerfil && profileAvatarSidebar) {
+            profileAvatarSidebar.src = demoUsers[idx].fotoPerfil;
             profileAvatarSidebar.style.display = "block";
             avatarInitials.style.display = "none";
           }
@@ -492,13 +539,44 @@ function setupUserProfile(profile) {
           showLoading(false);
           showAlert("Datos de perfil actualizados con éxito (Demo).", "success");
         }
-      }, 500);
+      };
+
+      if (profileAvatarImg.pendingFile) {
+        convertToWebP(profileAvatarImg.pendingFile)
+          .then((webpBlob) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(webpBlob);
+            reader.onloadend = () => {
+              saveDemoProfile(reader.result);
+            };
+          })
+          .catch((err) => {
+            showLoading(false);
+            console.error("Error al procesar WebP:", err);
+            showAlert("Error al comprimir la imagen.");
+          });
+      } else {
+        saveDemoProfile(null);
+      }
     } else {
       try {
+        if (profileAvatarImg.pendingFile) {
+          // Convertir a WebP en el cliente antes de subir
+          const webpBlob = await convertToWebP(profileAvatarImg.pendingFile);
+          
+          // Subir a Firebase Storage
+          const storageRef = ref(storage, `perfiles/${profile.uid}.webp`);
+          await uploadBytes(storageRef, webpBlob);
+          
+          // Obtener URL de descarga
+          const downloadUrl = await getDownloadURL(storageRef);
+          updatedData.fotoPerfil = downloadUrl;
+        }
+
         const userRef = doc(db, "usuarios", profile.uid);
         await updateDoc(userRef, updatedData);
         
-        // Actualizar navbar
+        // Actualizar navbar y sidebar
         if (updatedData.fotoPerfil && profileAvatarSidebar) {
           profileAvatarSidebar.src = updatedData.fotoPerfil;
           profileAvatarSidebar.style.display = "block";
@@ -510,7 +588,7 @@ function setupUserProfile(profile) {
       } catch (error) {
         showLoading(false);
         console.error("Error al actualizar perfil:", error);
-        showAlert("Error al actualizar datos en Firestore.");
+        showAlert("Error al guardar perfil en Firestore / Storage: " + error.message);
       }
     }
   });

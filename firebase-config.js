@@ -2,6 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getStorage } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
 
 // TODO: Reemplazar con las credenciales de tu proyecto de Firebase
 const firebaseConfig = {
@@ -18,7 +19,8 @@ const firebaseConfig = {
 // Inicializar Firebase
 const app = initializeApp(firebaseConfig);
 
-// Exportar servicios de Auth, Firestore y Configuración
+// Exportar servicios de Auth, Firestore, Storage y Configuración
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 export { firebaseConfig };
