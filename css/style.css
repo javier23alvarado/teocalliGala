@@ -160,11 +160,26 @@ body {
 .nav-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
   text-decoration: none;
-  font-weight: 800;
-  font-size: 20px;
-  color: var(--text-main);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.gala-minimal-logo-container {
+  padding: 1rem 1rem 0.5rem 1rem;
+  gap: 6px;
+}
+
+.gala-minimal-brand {
+  text-align: center;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .gala-minimal-brand {
+    font-size: 1rem;
+  }
 }
 
 .nav-logo-svg {
@@ -1329,4 +1344,360 @@ body {
 
 .checkbox-item:last-child {
   margin-bottom: 0;
+}
+\n
+/* ====================================================
+   MAPA GALA (ASIENTOS)
+   ==================================================== */
+.gala-seat-grid {
+  display: grid;
+  justify-content: center;
+  gap: 6px;
+  padding: 20px;
+  background: rgba(0,0,0,0.02);
+  border-radius: 12px;
+  margin-top: 10px;
+  min-width: max-content;
+}
+
+.gala-stage {
+  width: 400px;
+  height: 40px;
+  background: linear-gradient(180deg, #d81b60 0%, #880e4f 100%);
+  border-radius: 0 0 20px 20px;
+  margin: 0 auto;
+  color: white;
+  text-align: center;
+  line-height: 40px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  box-shadow: 0 10px 20px rgba(216,27,96,0.4);
+}
+
+.gala-seat {
+  width: 25px;
+  height: 25px;
+  border-radius: 4px 4px 2px 2px;
+  cursor: pointer;
+  position: relative;
+  background-color: #cbd5e1; /* Gris claro por defecto (Libre) */
+  transition: transform 0.2s, filter 0.2s, box-shadow 0.2s;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.gala-seat:hover {
+  transform: scale(1.2);
+  z-index: 10;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+}
+
+.gala-seat.selected {
+  outline: 3px solid #d81b60;
+  transform: scale(1.1);
+}
+
+.seat-sec-1 { background-color: #f6c23e; }
+.seat-sec-2 { background-color: #fd7e14; }
+.seat-sec-3 { background-color: #1cc88a; }
+.seat-sec-4 { background-color: #6f42c1; }
+.seat-sec-5 { background-color: #36b9cc; }
+.seat-sec-6 { background-color: #e74a3b; }
+
+.seat-reservado {
+  background-color: #f6c23e !important;
+  opacity: 0.9;
+  background-image: repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(0,0,0,0.4) 3px, rgba(0,0,0,0.4) 6px);
+}
+
+.seat-vendido {
+  background-color: #444 !important;
+  background-image: none !important;
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+.admin-mode .seat-vendido {
+  cursor: pointer;
+}
+
+.gala-map-legend {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.legend-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+}
+
+#gala-tooltip {
+  position: absolute;
+  background: rgba(0,0,0,0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+#gala-tooltip.visible {
+  opacity: 1;
+}
+
+.gala-map-wrapper {
+  overflow: auto;
+  width: 100%;
+  max-height: 80vh;
+  position: relative;
+  padding: 20px;
+}
+
+/* ====================================================
+   FOOTER MINIMALISTA
+   ==================================================== */
+.gala-minimal-footer {
+  background-color: #0a0a0c;
+  color: #fff;
+  padding: 40px 20px;
+  text-align: center;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.footer-social-icons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.footer-social-icons .social-icon {
+  color: #fff;
+  opacity: 0.7;
+  transition: opacity 0.3s, color 0.3s;
+}
+
+.footer-social-icons .social-icon:hover {
+  opacity: 1;
+  color: #d81b60;
+}
+
+.footer-copy {
+  color: #888;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.footer-dev {
+  color: #555;
+  font-size: 0.8rem;
+}
+
+.footer-dev a {
+  color: #777;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.footer-dev a:hover {
+  color: #fff;
+}
+
+/* ====================================================
+   LANDING PAGE MINIMALISTA EXACTA (GALA)
+   ==================================================== */
+/* Body Background */
+.gala-minimal-body {
+  background: radial-gradient(circle at 50% 40%, rgba(194, 24, 91, 0.25) 0%, rgba(107, 12, 46, 0.15) 35%, #0a0a0c 75%);
+  background-color: #0a0a0d;
+  color: white;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.gala-minimal-header-container {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-top: 40px;
+}
+
+.gala-minimal-logo {
+  width: 65px;
+  height: auto;
+  margin: 0 auto 10px auto;
+  display: block;
+}
+
+.gala-minimal-brand {
+  font-family: 'Cinzel', 'Cormorant Garamond', 'Playfair Display', serif;
+  font-weight: 700;
+  letter-spacing: 4px;
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  line-height: 1.4;
+  color: #f8f9fa;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+/* Grid Layout */
+.gala-minimal-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.gala-minimal-grid {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 50px;
+  margin-bottom: 40px;
+}
+
+.gala-minimal-visual {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.gala-minimal-poster {
+  max-width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(194, 24, 91, 0.3);
+  width: 400px; /* Base size */
+}
+
+.gala-minimal-text {
+  flex: 1;
+  text-align: left;
+}
+
+.gala-minimal-subtitle {
+  color: #c2185b; /* Borgoña/rosa mexicano */
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.gala-minimal-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  color: white;
+  font-size: 3.2rem;
+  line-height: 1.1;
+  margin-bottom: 20px;
+  margin-top: 0;
+}
+
+.gala-minimal-desc {
+  color: #cccccc;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 480px;
+  margin-bottom: 20px;
+}
+
+.gala-minimal-info {
+  border-left: 2px solid #a01a48;
+  padding-left: 12px;
+  margin: 1.5rem 0;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+}
+
+.gala-btn-minimal {
+  background: linear-gradient(135deg, #a01a48, #6b0c2e);
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 12px 32px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  display: inline-block;
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.gala-btn-minimal:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+
+/* Footer */
+.gala-minimal-footer {
+  text-align: center;
+  padding: 20px;
+  color: #666666;
+  font-size: 0.8rem;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .gala-minimal-header-container {
+    padding-top: 20px;
+    margin-bottom: 1.5rem;
+  }
+
+  .gala-minimal-grid {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .gala-minimal-visual {
+    justify-content: center;
+    width: 100%;
+    padding: 0 1rem;
+    box-sizing: border-box;
+  }
+  
+  .gala-minimal-poster {
+    width: 100%;
+  }
+
+  .gala-minimal-text {
+    text-align: center;
+  }
+  
+  .gala-minimal-desc {
+    margin: 0 auto 20px auto;
+  }
+  
+  .gala-minimal-info {
+    text-align: left;
+    display: inline-block;
+  }
+
+  .gala-btn-minimal {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .gala-minimal-title {
+    font-size: 2.8rem;
+  }
 }

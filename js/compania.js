@@ -52,6 +52,7 @@ const navDbUsers = document.getElementById("btn-users");
 const sidebarOptUsers = document.getElementById("sidebar-opt-users");
 const navDbProfile = document.getElementById("btn-perfil");
 const navDbAgenda = document.getElementById("btn-agenda");
+const navDbGala = document.getElementById("btn-gala");
 const btnMenuToggle = document.getElementById("btn-menu-toggle");
 const sidebar = document.querySelector(".sidebar");
 const profileAvatarSidebar = document.getElementById("profile-avatar-sidebar");
@@ -319,6 +320,7 @@ async function loadCompaniesCatalog() {
 // ORQUESTACIÓN DE RENDERIZADO Y CONTROL DE ACCESO
 // ====================================================
 function initializeDashboard(profile) {
+  setupGalaModule(profile);
   // Mostrar contenedor principal al verificar sesión
   const dashboardWrapper = document.querySelector(".dashboard-wrapper");
   if (dashboardWrapper) dashboardWrapper.style.display = "flex";
@@ -414,6 +416,14 @@ if (navDbGeneral) {
   });
 }
 
+if (navDbGala) {
+  navDbGala.addEventListener("click", (e) => {
+    e.preventDefault();
+    switchDbSection("gala");
+    closeSidebarOnMobile();
+  });
+}
+
 if (navDbProfile) {
   navDbProfile.addEventListener("click", (e) => {
     e.preventDefault();
@@ -483,6 +493,201 @@ function setupUserProfile(profile) {
   if (profilePaternoInput) profilePaternoInput.value = profile.apellidoPaterno || "";
   if (profileMaternoInput) profileMaternoInput.value = profile.apellidoMaterno || "";
   if (profileAliasInput) profileAliasInput.value = profile.alias || "";
+  if (profilePhoneInput) profilePhoneInput.value = profile.celular || "";
+  if (profileEmailInput) profileEmailInput.value = profile.email || "";
+  
+  if (profile.fotoPerfil && profileAvatarImg) {
+    profileAvatarImg.src = profile.fotoPerfil;
+  }
+
+  // Previsualización y codificación de cualquier formato de imagen
+  if (profileAvatarInput && profileAvatarImg) {
+    profileAvatarInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const validExtensions = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".gif", ".bmp", ".tiff"];
+        const fileExtension = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
+        
+        if (!file.type.startsWith("image/") && !validExtensions.includes(fileExtension)) {
+          showAlert("El archivo seleccionado debe ser una imagen válida.");
+          profileAvatarInput.value = ""; // Resetear input
+          return;
+        }
+        
+        // Guardar archivo original para ser procesado al guardar
+        profileAvatarImg.pendingFile = file;
+
+        // Previsualizar la imagen usando URL temporal
+        const previewUrl = URL.createObjectURL(file);
+        profileAvatarImg.src = previewUrl;
+      }
+    });
+  }
+
+  // Guardar datos del perfil
+  profileDetailsForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    showLoading(true);
+
+    const newAlias = profileAliasInput.value.trim();
+    const newPhone = profilePhoneInput.value.trim();
+
+    const updatedData = {
+      alias: newAlias,
+      celular: newPhone
+    };
+
+    if (isDemoMode) {
+      const saveDemoProfile = (fotoPerfilUrl) => {
+        const demoUsers = JSON.parse(localStorage.getItem("teocalli_demo_users") || "[]");
+        const idx = demoUsers.findIndex(u => u.uid === profile.uid);
+        if (idx !== -1) {
+          if (fotoPerfilUrl) {
+            updatedData.fotoPerfil = fotoPerfilUrl;
+          }
+          demoUsers[idx] = { ...demoUsers[idx], ...updatedData };
+          localStorage.setItem("teocalli_demo_users", JSON.stringify(demoUsers));
+          
+          sessionStorage.setItem("demo_active_user", JSON.stringify(demoUsers[idx]));
+          
+          // Actualizar navbar superior e imagen del sidebar
+          const updatedName = `${demoUsers[idx].nombres || ""} ${demoUsers[idx].apellidoPaterno || ""} ${demoUsers[idx].apellidoMaterno || ""}`.trim();
+          profileName.textContent = updatedName || demoUsers[idx].nombre;
+          if (demoUsers[idx].fotoPerfil && profileAvatarSidebar) {
+            profileAvatarSidebar.src = demoUsers[idx].fotoPerfil;
+            profileAvatarSidebar.style.display = "block";
+            avatarInitials.style.display = "none";
+          }
+          
+          showLoading(false);
+          showAlert("Datos de perfil actualizados con éxito (Demo).", "success");
+        }
+      };
+
+      if (profileAvatarImg.pendingFile) {
+        convertToWebP(profileAvatarImg.pendingFile)
+          .then((webpBlob) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(webpBlob);
+            reader.onloadend = () => {
+              saveDemoProfile(reader.result);
+            };
+          })
+          .catch((err) => {
+            showLoading(false);
+            console.error("Error al procesar WebP:", err);
+            showAlert("Error al comprimir la imagen.");
+          });
+      } else {
+        saveDemoProfile(null);
+      }
+    } else {
+      const saveRealProfile = async (fotoPerfilUrl) => {
+        try {
+          if (fotoPerfilUrl) {
+            updatedData.fotoPerfil = fotoPerfilUrl;
+          }
+
+          const userRef = doc(db, "usuarios", profile.uid);
+          await updateDoc(userRef, updatedData);
+          
+          // Actualizar navbar y sidebar
+          if (updatedData.fotoPerfil && profileAvatarSidebar) {
+            profileAvatarSidebar.src = updatedData.fotoPerfil;
+            profileAvatarSidebar.style.display = "block";
+            avatarInitials.style.display = "none";
+          }
+          
+          showLoading(false);
+          showAlert("Tu perfil ha sido actualizado exitosamente.", "success");
+        } catch (error) {
+          showLoading(false);
+          console.error("Error al actualizar perfil:", error);
+          showAlert("Error al guardar perfil en Firestore: " + error.message);
+        }
+      };
+
+      if (profileAvatarImg.pendingFile) {
+        convertToWebP(profileAvatarImg.pendingFile)
+          .then((webpBlob) => {
+            // Si la conversión retornó el archivo original heic/raw
+            if (!(webpBlob instanceof Blob)) {
+              const reader = new FileReader();
+              reader.readAsDataURL(webpBlob);
+              reader.onloadend = () => {
+                saveRealProfile(reader.result);
+              };
+              return;
+            }
+            const reader = new FileReader();
+            reader.readAsDataURL(webpBlob);
+            reader.onloadend = () => {
+              saveRealProfile(reader.result);
+            };
+          })
+          .catch((err) => {
+            showLoading(false);
+            console.error("Error al procesar WebP:", err);
+            showAlert("Error al comprimir la imagen.");
+          });
+      } else {
+        saveRealProfile(null);
+      }
+    }
+  });
+
+  // Cambiar contraseña
+  if (profilePasswordForm) {
+    profilePasswordForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const newPassword = profileNewPasswordInput.value;
+      const confirmPassword = profileConfirmPasswordInput.value;
+
+      if (newPassword !== confirmPassword) {
+        showAlert("Las contraseñas no coinciden.");
+        return;
+      }
+
+      showLoading(true);
+
+      if (isDemoMode) {
+        setTimeout(() => {
+          profilePasswordForm.reset();
+          showLoading(false);
+          showAlert("Contraseña cambiada con éxito (Demo).", "success");
+        }, 500);
+      } else {
+        try {
+          const user = auth.currentUser;
+          if (user) {
+            const { updatePassword } = await import("https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js");
+            await updatePassword(user, newPassword);
+            
+            profilePasswordForm.reset();
+            showLoading(false);
+            showAlert("Contraseña actualizada con éxito.", "success");
+          } else {
+            showLoading(false);
+            showAlert("No se detectó un usuario autenticado.");
+          }
+        } catch (error) {
+          showLoading(false);
+          console.error("Error al cambiar contraseña:", error);
+          if (error.code === "auth/requires-recent-login") {
+            showAlert("⚠️ <strong>Acción requerida:</strong> Por seguridad, debes cerrar sesión, iniciar sesión de nuevo e intentar el cambio inmediatamente.");
+          } else {
+            showAlert("Error al actualizar contraseña: " + error.message);
+          }
+        }
+      }
+    });
+  }
+}
+
+// ====================================================
+// PESTAÑAS DE GESTIÓN (Tabs setup)
+if (profileAliasInput) profileAliasInput.value = profile.alias || "";
   if (profilePhoneInput) profilePhoneInput.value = profile.celular || "";
   if (profileEmailInput) profileEmailInput.value = profile.email || "";
   
@@ -829,6 +1034,10 @@ function switchDbSection(sectionName) {
     if (navDbAgenda) navDbAgenda.classList.add("active");
     const dbSectionAgenda = document.getElementById("db-section-agenda");
     if (dbSectionAgenda) dbSectionAgenda.classList.add("active");
+  } else if (sectionName === "gala") {
+    if (navDbGala) navDbGala.classList.add("active");
+    const dbSectionGala = document.getElementById("db-section-gala");
+    if (dbSectionGala) dbSectionGala.classList.add("active");
   }
 }
 
@@ -1984,4 +2193,254 @@ function createReminderItemHtml(event) {
       </div>
     </div>
   `;
+}
+
+// ====================================================
+// MÓDULO GALA - MAPA INTERACTIVO Y GESTIÓN
+// ====================================================
+import { 
+  collection, query, where, getDocs, setDoc, doc, updateDoc, onSnapshot 
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+let unsubscribeGalaSeats = null;
+let galaSeatsData = [];
+let galaUsersCatalog = [];
+let galaMapMatrix = null;
+
+export async function setupGalaModule(profile) {
+  const isAdmin = profile.id_rol === "super_admin" || profile.id_rol === "admin" || profile.rol === "super_admin";
+  
+  const btnSeed = document.getElementById("btn-seed-seats");
+  const assignGroup = document.getElementById("gala-admin-assign-group");
+  
+  // Fetch Map Matrix
+  try {
+    const res = await fetch("assets/data/mapa.json");
+    galaMapMatrix = await res.json();
+  } catch(e) {
+    console.error("No se pudo cargar el mapa.json", e);
+  }
+  
+  // DOM setup depending on role
+  if (isAdmin) {
+    if (btnSeed) btnSeed.style.display = "block";
+    if (assignGroup) assignGroup.style.display = "block";
+    
+    const wrapper = document.querySelector(".gala-map-wrapper");
+    if(wrapper) wrapper.classList.add("admin-mode");
+    
+    // Cargar catálogo de usuarios
+    if (typeof isDemoMode === "undefined" || !isDemoMode) {
+      const q = query(collection(window.db, "usuarios"), where("activo", "==", true));
+      const snap = await getDocs(q);
+      const select = document.getElementById("gala-assign-select");
+      if(select) {
+          snap.forEach(d => {
+            galaUsersCatalog.push({ uid: d.id, ...d.data() });
+            const opt = document.createElement("option");
+            opt.value = d.id;
+            opt.textContent = `${d.data().nombres || d.data().nombre} ${d.data().apellidoPaterno || ""}`.trim();
+            select.appendChild(opt);
+          });
+      }
+    }
+  }
+
+  // Seeder (Solo Admin)
+  if (btnSeed) {
+    btnSeed.addEventListener("click", async () => {
+      if(!galaMapMatrix) {
+          alert("El mapa no ha cargado aún.");
+          return;
+      }
+      if(!confirm("¿Seguro que deseas inicializar/borrar los asientos en base al archivo de Excel? Esto puede tardar unos minutos.")) return;
+      
+      const showLoading = typeof window.showLoading === "function" ? window.showLoading : () => {};
+      showLoading(true);
+      try {
+        let total = 0;
+        
+        for (const [id, pos] of Object.entries(galaMapMatrix.seats)) {
+          let sec = 1;
+          const match = id.match(/^([A-Z]+)(\d+)$/);
+          
+          if (match) {
+              const letters = match[1];
+              const num = parseInt(match[2], 10);
+              const isEven = num % 2 === 0;
+              const isSingleLetter = letters.length === 1;
+              const isDoubleLetter = letters.length === 2;
+              
+              if (letters === 'TT') {
+                  sec = 4;
+              } else if (num >= 100) {
+                  if (isSingleLetter) {
+                      sec = 3;
+                  } else {
+                      sec = 4;
+                  }
+              } else {
+                  if (!isEven) {
+                      sec = isSingleLetter ? 1 : 2;
+                  } else {
+                      sec = isSingleLetter ? 5 : 6;
+                  }
+              }
+          }
+
+          await setDoc(doc(window.db, "asientos_gala", id), {
+            id_asiento: id,
+            seccion: sec,
+            fila: match ? match[1] : "-",
+            numero: match ? parseInt(match[2], 10) : 0,
+            coordenadas: { r: pos.r, c: pos.c },
+            estado: "LIBRE",
+            asignado_a: null,
+            cliente_reserva: null
+          });
+          total++;
+          if(total % 50 === 0) console.log(`Sembrados ${total} asientos...`);
+        }
+        alert(`¡${total} asientos inicializados con éxito desde el CSV!`);
+      } catch(e) {
+        console.error(e);
+        alert("Error inicializando los asientos.");
+      }
+      showLoading(false);
+    });
+  }
+
+  // Suscripción a los asientos
+  if (typeof isDemoMode === "undefined" || !isDemoMode) {
+    unsubscribeGalaSeats = onSnapshot(collection(window.db, "asientos_gala"), (snap) => {
+      galaSeatsData = [];
+      snap.forEach(d => galaSeatsData.push(d.data()));
+      renderGalaMap(profile, isAdmin);
+    });
+  }
+}
+
+function renderGalaMap(profile, isAdmin) {
+  const container = document.getElementById("gala-map-container");
+  if (!container) return;
+  
+  container.innerHTML = "";
+  
+  let countTotal = 0, countLibres = 0, countRes = 0, countVen = 0;
+
+  if (galaMapMatrix) {
+    container.style.display = "grid";
+    container.style.gridTemplateColumns = `repeat(${galaMapMatrix.max_col}, minmax(20px, 25px))`;
+    container.style.gridTemplateRows = `repeat(${galaMapMatrix.max_row}, minmax(20px, 25px))`;
+    container.style.gap = "6px";
+    container.style.justifyContent = "center";
+    container.style.padding = "20px";
+    container.style.minWidth = "max-content";
+  }
+
+  const sorted = galaSeatsData;
+
+  sorted.forEach(seat => {
+    const isOwner = seat.asignado_a === profile.uid;
+    
+    if (isOwner) {
+      countTotal++;
+      if (seat.estado === "LIBRE") countLibres++;
+      if (seat.estado === "RESERVADO") countRes++;
+      if (seat.estado === "VENDIDO") countVen++;
+    }
+
+    if (!isAdmin && !isOwner) return;
+
+    const div = document.createElement("div");
+    div.className = `gala-seat seat-sec-${seat.seccion}`;
+    
+    if (seat.estado === "RESERVADO") div.classList.add("seat-reservado");
+    if (seat.estado === "VENDIDO") div.classList.add("seat-vendido");
+
+    if (seat.coordenadas) {
+        div.style.gridRow = seat.coordenadas.r;
+        div.style.gridColumn = seat.coordenadas.c;
+    } else if (galaMapMatrix && galaMapMatrix.seats[seat.id_asiento]) {
+        div.style.gridRow = galaMapMatrix.seats[seat.id_asiento].r;
+        div.style.gridColumn = galaMapMatrix.seats[seat.id_asiento].c;
+    }
+
+    div.addEventListener("mouseenter", () => {
+      const tooltip = document.getElementById("gala-tooltip");
+      if (!tooltip) return;
+      tooltip.innerHTML = `<strong>${seat.id_asiento}</strong><br>Estado: ${seat.estado}${seat.cliente_reserva ? '<br>Cliente: ' + seat.cliente_reserva : ''}`;
+      tooltip.classList.add("visible");
+      
+      const rect = div.getBoundingClientRect();
+      const mapWrapper = document.querySelector(".gala-map-wrapper");
+      tooltip.style.left = (rect.left - mapWrapper.getBoundingClientRect().left + 30) + "px";
+      tooltip.style.top = (rect.top - mapWrapper.getBoundingClientRect().top - 10) + "px";
+    });
+    
+    div.addEventListener("mouseleave", () => {
+      const tooltip = document.getElementById("gala-tooltip");
+      if (tooltip) tooltip.classList.remove("visible");
+    });
+
+    div.addEventListener("click", () => {
+      if (!isAdmin && seat.estado === "VENDIDO") return;
+      openSeatModal(seat, isAdmin);
+    });
+
+    container.appendChild(div);
+  });
+  
+  const mDisp = document.getElementById("gala-metric-disp");
+  const mRes = document.getElementById("gala-metric-res");
+  const mVen = document.getElementById("gala-metric-ven");
+  const mTot = document.getElementById("gala-metric-total");
+  
+  if (mDisp) mDisp.textContent = isAdmin ? galaSeatsData.filter(s=>s.estado==="LIBRE").length : countLibres;
+  if (mRes) mRes.textContent = isAdmin ? galaSeatsData.filter(s=>s.estado==="RESERVADO").length : countRes;
+  if (mVen) mVen.textContent = isAdmin ? galaSeatsData.filter(s=>s.estado==="VENDIDO").length : countVen;
+  if (mTot) mTot.textContent = isAdmin ? galaSeatsData.length : countTotal;
+}
+
+function openSeatModal(seat, isAdmin) {
+  document.getElementById("gala-modal-id").textContent = seat.id_asiento;
+  document.getElementById("gala-modal-status").value = seat.estado;
+  document.getElementById("gala-modal-client").value = seat.cliente_reserva || "";
+  
+  const assignGroup = document.getElementById("gala-admin-assign-group");
+  const selectAssign = document.getElementById("gala-assign-select");
+  if (assignGroup && isAdmin) {
+    selectAssign.value = seat.asignado_a || "";
+  }
+  
+  document.getElementById("gala-seat-modal").classList.add("active");
+  document.getElementById("gala-modal-overlay").classList.add("active");
+  
+  const btnSave = document.getElementById("btn-save-gala-seat");
+  const newBtn = btnSave.cloneNode(true);
+  btnSave.parentNode.replaceChild(newBtn, btnSave);
+  
+  newBtn.addEventListener("click", async () => {
+    try {
+      const data = {
+        estado: document.getElementById("gala-modal-status").value,
+        cliente_reserva: document.getElementById("gala-modal-client").value.trim() || null
+      };
+      const sel = document.getElementById("gala-assign-select");
+      if (sel && sel.closest(".form-group").style.display !== "none") {
+        data.asignado_a = sel.value || null;
+      }
+      await updateDoc(doc(window.db, "asientos_gala", seat.id_asiento), data);
+      document.getElementById("gala-seat-modal").classList.remove("active");
+      document.getElementById("gala-modal-overlay").classList.remove("active");
+    } catch(err) {
+      console.error(err);
+      alert("Error al guardar: " + err.message);
+    }
+  });
+  
+  document.getElementById("btn-close-gala-modal").addEventListener("click", () => {
+    document.getElementById("gala-seat-modal").classList.remove("active");
+    document.getElementById("gala-modal-overlay").classList.remove("active");
+  });
 }
