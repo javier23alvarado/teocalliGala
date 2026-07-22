@@ -61,6 +61,23 @@ const dbSectionGeneral = document.getElementById("db-section-general");
 const dbSectionUsers = document.getElementById("db-section-users");
 const dbSectionProfile = document.getElementById("db-section-profile");
 
+// Módulo Boletos Gala
+const sidebarOptBoletos = document.getElementById("sidebar-opt-boletos");
+const navDbBoletos = document.getElementById("btn-boletos");
+const dbSectionBoletos = document.getElementById("db-section-boletos");
+const btnInitMap = document.getElementById("btn-init-map");
+const teatroMapGrid = document.getElementById("teatro-map-grid");
+const countLibres = document.getElementById("count-libres");
+const countReservados = document.getElementById("count-reservados");
+const countVendidos = document.getElementById("count-vendidos");
+const boletoModal = document.getElementById("boleto-modal");
+const btnCloseBoletoModal = document.getElementById("btn-close-boleto-modal");
+const boletoForm = document.getElementById("boleto-form");
+const boletoIdInput = document.getElementById("boleto-id-input");
+const boletoStatusSelect = document.getElementById("boleto-status-select");
+const boletoBailarinGroup = document.getElementById("boleto-bailarin-group");
+const boletoBailarinSelect = document.getElementById("boleto-bailarin-select");
+
 // Métricas
 const metricTotalDancers = document.getElementById("metric-total-dancers");
 const metricActiveDancers = document.getElementById("metric-active-dancers");
@@ -363,17 +380,32 @@ function initializeDashboard(profile) {
   if (profile.id_rol === "super_admin") {
     // Si es Super Administrador, habilitar vista CRUD y controles de gestión
     if (sidebarOptUsers) sidebarOptUsers.style.display = "block";
+    if (sidebarOptBoletos) sidebarOptBoletos.style.display = "block";
     setupSuperAdminCRUD();
+    if (typeof setupBoletosModule === "function") setupBoletosModule();
     
     // Configurar vista general personalizada para administrador
     welcomeRoleTitle.textContent = "Consola de Super Administrador";
     welcomeRoleMessage.textContent = "Tienes acceso completo a la base de datos de la Compañía Teocalli. Puedes crear, consultar, modificar y eliminar miembros de la plataforma, así como supervisar sus estados de acceso.";
+  } else if (profile.id_rol === "admin") {
+    if (sidebarOptUsers) sidebarOptUsers.remove();
+    if (dbSectionUsers) dbSectionUsers.remove();
+    if (userRegistrationCard) userRegistrationCard.remove();
+    if (sidebarOptBoletos) sidebarOptBoletos.style.display = "block";
+    if (typeof setupBoletosModule === "function") setupBoletosModule();
+
+    const companyObj = companiesCatalog.find(c => c.id === profile.id_compania);
+    const companyName = companyObj ? companyObj.nombre : "Compañía General";
+    welcomeRoleTitle.textContent = `Ballet Folclórico - ${companyName} (Administrador)`;
+    welcomeRoleMessage.textContent = "Tienes acceso al módulo de boletos.";
   } else {
-    // Si es administrador o bailarín estándar:
+    // Si es bailarín estándar:
     // Ocultar por completo o remover del DOM el listado de gestión, el menú lateral y el formulario
     if (sidebarOptUsers) sidebarOptUsers.remove();
     if (dbSectionUsers) dbSectionUsers.remove();
     if (userRegistrationCard) userRegistrationCard.remove();
+    if (sidebarOptBoletos) sidebarOptBoletos.remove();
+    if (dbSectionBoletos) dbSectionBoletos.remove();
 
     // Obtener nombre legible de su compañía vinculada
     const companyObj = companiesCatalog.find(c => c.id === profile.id_compania);
@@ -420,6 +452,14 @@ if (navDbProfile) {
   navDbProfile.addEventListener("click", (e) => {
     e.preventDefault();
     switchDbSection("profile");
+    closeSidebarOnMobile();
+  });
+}
+
+if (navDbBoletos) {
+  navDbBoletos.addEventListener("click", (e) => {
+    e.preventDefault();
+    switchDbSection("boletos");
     closeSidebarOnMobile();
   });
 }
@@ -827,6 +867,9 @@ function switchDbSection(sectionName) {
   } else if (sectionName === "profile") {
     if (navDbProfile) navDbProfile.classList.add("active");
     if (dbSectionProfile) dbSectionProfile.classList.add("active");
+  } else if (sectionName === "boletos") {
+    if (navDbBoletos) navDbBoletos.classList.add("active");
+    if (dbSectionBoletos) dbSectionBoletos.classList.add("active");
   } else if (sectionName === "agenda") {
     if (navDbAgenda) navDbAgenda.classList.add("active");
     const dbSectionAgenda = document.getElementById("db-section-agenda");
@@ -1986,4 +2029,260 @@ function createReminderItemHtml(event) {
       </div>
     </div>
   `;
+}
+
+// ====================================================
+// MÓDULO BOLETOS GALA
+// ====================================================
+let asientosDbRef = null;
+let unsubscribeBoletos = null;
+
+async function setupBoletosModule() {
+  
+
+  if (!dbSectionBoletos) return;
+  
+  const boletoModalTitle = document.getElementById('boleto-modal-title');
+  
+  try {
+    const res = await fetch('js/data/mapaGaleriasLayout.json');
+    if (!res.ok) throw new Error('No se pudo cargar el layout');
+    const mapData = await res.json();
+    renderMapGrid(mapData);
+    
+    if (typeof Panzoom !== 'undefined' && teatroMapGrid) {
+      const pz = Panzoom(teatroMapGrid, {
+        maxScale: 5,
+        minScale: 0.1,
+        startScale: 0.45, 
+        step: 0.2
+      });
+      teatroMapGrid.parentElement.addEventListener('wheel', pz.zoomWithWheel);
+      
+      setTimeout(() => {
+        const parentBounds = teatroMapGrid.parentElement.getBoundingClientRect();
+        const gridBounds = teatroMapGrid.getBoundingClientRect();
+        // Centro real
+        const startX = (parentBounds.width - (gridBounds.width / 0.7)) / 2;
+        const startY = (parentBounds.height - (gridBounds.height / 0.7)) / 2;
+        pz.pan(0, 0); // Un offset razonable para empezar centrado
+      }, 100);
+    }
+  } catch (error) {
+    console.error('Error al cargar mapaGaleriasLayout.json:', error);
+    if (teatroMapGrid) teatroMapGrid.innerHTML = '<p style="color:red;text-align:center;">Error al cargar el mapa visual.</p>';
+  }
+
+  populateBailarinesSelect();
+  
+  asientosDbRef = doc(db, 'gala', 'estadoBoletos');
+  unsubscribeBoletos = onSnapshot(asientosDbRef, (docSnap) => {
+    if (!docSnap.exists()) {
+      if(btnInitMap) btnInitMap.style.display = 'block';
+    } else {
+      if(btnInitMap) btnInitMap.style.display = 'none';
+      const data = docSnap.data().asientos || {};
+      updateMapUI(data);
+    }
+  });
+
+  if (btnInitMap) {
+    btnInitMap.addEventListener('click', async () => {
+      if (!confirm('¿Seguro que deseas inicializar todos los asientos como Libres? Esto sobrescribirá datos existentes.')) return;
+      
+      const res = await fetch('js/data/mapaGaleriasLayout.json');
+      const mapData = await res.json();
+      const initialAsientos = {};
+      
+      mapData.layout.forEach(row => {
+        row.forEach(cell => {
+          if (cell && cell.trim() !== '' && cell.trim() !== 'pasillo' && cell.trim().toUpperCase() !== 'ESCENARIO') {
+            initialAsientos[cell.trim()] = { estado: 'libre', bailarin_id: null };
+          }
+        });
+      });
+      
+      try {
+        await setDoc(asientosDbRef, { asientos: initialAsientos, lastUpdate: new Date().toISOString() });
+        showAlert('Base de datos de boletos inicializada correctamente.', 'success');
+      } catch (error) {
+        console.error('Error init boletos:', error);
+        showAlert('Error al inicializar: ' + error.message, 'danger');
+      }
+    });
+  }
+
+  if (btnCloseBoletoModal) {
+    btnCloseBoletoModal.addEventListener('click', () => {
+      if (boletoModal) boletoModal.style.display = 'none';
+    });
+  }
+  
+  if (boletoStatusSelect) {
+    boletoStatusSelect.addEventListener('change', (e) => {
+      if (e.target.value === 'reservado' || e.target.value === 'vendido') {
+        boletoBailarinGroup.style.display = 'block';
+      } else {
+        boletoBailarinGroup.style.display = 'none';
+      }
+    });
+  }
+
+  if (boletoForm) {
+    boletoForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const seatId = boletoIdInput.value;
+      const status = boletoStatusSelect.value;
+      const bailarin = (status === 'libre') ? null : boletoBailarinSelect.value;
+      const comentario = document.getElementById('boleto-comentario') ? document.getElementById('boleto-comentario').value : '';
+      
+      try {
+        await updateDoc(asientosDbRef, {
+          [`asientos.${seatId}.estado`]: status,
+          [`asientos.${seatId}.bailarin_id`]: bailarin,
+          [`asientos.${seatId}.comentario`]: comentario
+        });
+        if (boletoModal) boletoModal.style.display = 'none';
+        showAlert(`Boleto ${seatId} actualizado a ${status}.`, 'success');
+      } catch(error) {
+        console.error(error);
+        showAlert('Error al guardar: ' + error.message, 'danger');
+      }
+    });
+  }
+}
+
+function renderMapGrid(mapData) {
+  if (!teatroMapGrid) return;
+  teatroMapGrid.innerHTML = '';
+  teatroMapGrid.style.gridTemplateColumns = `repeat(${mapData.cols}, 1fr)`;
+  
+  let hasEscenario = false;
+
+  mapData.layout.forEach(row => {
+    // Si la fila completa está formada solo por vacíos o ESCENARIO, no la renderizamos
+    // para acercar el bloque al mapa
+    const isEscenarioRow = row.some(cell => cell && cell.trim().toUpperCase() === 'ESCENARIO');
+    if (isEscenarioRow) {
+      hasEscenario = true;
+      return; // Omitir esta fila en el DOM
+    }
+
+    row.forEach(cell => {
+      const div = document.createElement('div');
+      div.className = 'teatro-seat';
+      
+      if (!cell || cell.trim() === '' || cell.trim() === 'pasillo') {
+        div.classList.add('seat-empty');
+      } else {
+        const seatId = cell.trim();
+        div.id = `seat-${seatId}`;
+        div.textContent = seatId;
+        div.classList.add('seat-libre');
+        div.title = `Asiento ${seatId}`;
+        
+        div.addEventListener('click', () => {
+          openBoletoModal(seatId);
+        });
+      }
+      teatroMapGrid.appendChild(div);
+    });
+  });
+
+  if (hasEscenario) {
+    const escDiv = document.createElement('div');
+    escDiv.style.gridColumn = '1 / -1';
+    escDiv.style.marginTop = '20px';
+    escDiv.style.height = '60px';
+    escDiv.style.display = 'flex';
+    escDiv.style.alignItems = 'center';
+    escDiv.style.justifyContent = 'center';
+    escDiv.style.backgroundColor = '#fdf2f8'; 
+    escDiv.style.border = '3px solid #db2777'; 
+    escDiv.style.color = '#db2777';
+    escDiv.style.fontWeight = 'bold';
+    escDiv.style.letterSpacing = '10px';
+    escDiv.style.fontSize = '18px';
+    escDiv.style.borderRadius = '8px';
+    escDiv.textContent = 'ESCENARIO';
+    teatroMapGrid.appendChild(escDiv);
+  }
+}
+
+function updateMapUI(asientosData) {
+  let countL = 0, countR = 0, countV = 0;
+  
+  Object.keys(asientosData).forEach(seatId => {
+    const data = asientosData[seatId];
+    const div = document.getElementById(`seat-${seatId}`);
+    if (div) {
+      div.classList.remove('seat-libre', 'seat-reservado', 'seat-vendido');
+      div.classList.add(`seat-${data.estado}`);
+      
+      if (data.estado === 'libre') countL++;
+      else if (data.estado === 'reservado') countR++;
+      else if (data.estado === 'vendido') countV++;
+    }
+  });
+  
+  if (countLibres) countLibres.textContent = countL;
+  if (countReservados) countReservados.textContent = countR;
+  if (countVendidos) countVendidos.textContent = countV;
+}
+
+function openBoletoModal(seatId) {
+  const boletoModalTitle = document.getElementById('boleto-modal-title');
+  boletoIdInput.value = seatId;
+  if(boletoModalTitle) boletoModalTitle.textContent = `Gestionar Asiento ${seatId}`;
+  
+  const div = document.getElementById(`seat-${seatId}`);
+  if (div) {
+    if (div.classList.contains('seat-vendido')) boletoStatusSelect.value = 'vendido';
+    else if (div.classList.contains('seat-reservado')) boletoStatusSelect.value = 'reservado';
+    else boletoStatusSelect.value = 'libre';
+  } else {
+    boletoStatusSelect.value = 'libre';
+  }
+  
+  if (boletoStatusSelect.value === 'libre') {
+    boletoBailarinGroup.style.display = 'none';
+  } else {
+    boletoBailarinGroup.style.display = 'block';
+  }
+  
+  getDoc(asientosDbRef).then(docSnap => {
+    if(docSnap.exists()){
+      const seatData = docSnap.data().asientos[seatId];
+      if(seatData && seatData.bailarin_id) {
+        boletoBailarinSelect.value = seatData.bailarin_id;
+      } else {
+        boletoBailarinSelect.value = '';
+      }
+      
+      const comentarioInput = document.getElementById('boleto-comentario');
+      if (comentarioInput) {
+        comentarioInput.value = (seatData && seatData.comentario) ? seatData.comentario : '';
+      }
+    }
+  });
+  
+  boletoModal.style.display = 'flex';
+}
+
+async function populateBailarinesSelect() {
+  if (!boletoBailarinSelect) return;
+  try {
+    const q = query(collection(db, 'usuarios'), where('activo', '==', true));
+    const querySnapshot = await getDocs(q);
+    boletoBailarinSelect.innerHTML = '<option value="">Selecciona un usuario...</option>';
+    querySnapshot.forEach((d) => {
+      const u = d.data();
+      const opt = document.createElement('option');
+      opt.value = d.id;
+      opt.textContent = `${u.nombres} ${u.apellidoPaterno} (${u.alias || 'Sin alias'})`;
+      boletoBailarinSelect.appendChild(opt);
+    });
+  } catch(error) {
+    console.error('Error al poblar lista de bailarines', error);
+  }
 }

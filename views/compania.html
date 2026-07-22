@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel de Control | Compañía Teocalli</title>
   <meta name="description" content="Dashboard privado de gestión para miembros de la Compañía Teocalli.">
-  <link rel="stylesheet" href="../css/style.css">
+  <!-- CSS Principal -->
+  <link rel="stylesheet" href="../css/style.css?v=2.7">
+  <link rel="stylesheet" href="../css/fonts.css">
 </head>
 <body>
 
@@ -32,6 +34,12 @@
             <a class="sidebar-link" id="btn-users">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               <span>Gestión de Usuarios</span>
+            </a>
+          </li>
+          <li id="sidebar-opt-boletos" style="display: none;">
+            <a class="sidebar-link" id="btn-boletos">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M4 17v3h16v-3"/><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M9 14h.01"/><path d="M15 14h.01"/></svg>
+              <span>Boletos Gala</span>
             </a>
           </li>
           <li>
@@ -469,7 +477,81 @@
         </div>
       </section>
 
+      <!-- SECCIÓN 5: BOLETOS GALA (Solo Admin) -->
+  <section id="db-section-boletos" class="db-section">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h2 class="text-serif" style="color: var(--primary); margin: 0;">Gestión de Asientos - Teatro Galerías</h2>
+      <div>
+        <button id="btn-init-map" class="btn btn-secondary" style="font-size: 13px; display: none;">Inicializar Base de Datos</button>
+      </div>
+    </div>
+    
+    <!-- Leyenda y Estadísticas -->
+    <div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+      <div class="metric-card" style="border-left: 4px solid #10b981;">
+        <h4 style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Libres</h4>
+        <p class="metric-value" id="count-libres" style="color: #10b981;">0</p>
+      </div>
+      <div class="metric-card" style="border-left: 4px solid #f59e0b;">
+        <h4 style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Reservados</h4>
+        <p class="metric-value" id="count-reservados" style="color: #f59e0b;">0</p>
+      </div>
+      <div class="metric-card" style="border-left: 4px solid #ef4444;">
+        <h4 style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Vendidos</h4>
+        <p class="metric-value" id="count-vendidos" style="color: #ef4444;">0</p>
+      </div>
+    </div>
+
+    <!-- Contenedor del Mapa -->
+    <div class="map-container-wrapper" style="width: 100%; height: calc(100vh - 250px); overflow: hidden; background-color: var(--bg-card); border-radius: var(--radius-md); padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid var(--border-color); cursor: grab; position: relative;">
+      <div id="teatro-map-grid" class="teatro-grid" style="transform-origin: 0 0; margin: 0; padding: 0;">
+        <!-- El CSS Grid se inyectará aquí desde JS -->
+        <p style="text-align: center; color: var(--text-muted); padding: 40px; width: 100%;">Cargando mapa interactivo...</p>
+      </div>
+    </div>
+  </section>
+
+
     </main>
+  </div>
+
+    <!-- Modal para Asignar Boleto -->
+  <div class="modal-overlay" id="boleto-modal" style="display: none; z-index: 1000;">
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title text-serif" id="boleto-modal-title">Asignar Asiento</h3>
+        <button class="modal-close" id="btn-close-boleto-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="boleto-form">
+          <input type="hidden" id="boleto-id-input">
+          
+          <div class="form-group">
+            <label class="form-label" for="boleto-status-select">Estado del Asiento</label>
+            <select id="boleto-status-select" class="form-input" required>
+              <option value="libre">Libre</option>
+              <option value="reservado">Reservado</option>
+              <option value="vendido">Vendido</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="boleto-bailarin-group" style="display: none;">
+            <label class="form-label" for="boleto-bailarin-select">Bailarín Asignado</label>
+            <select id="boleto-bailarin-select" class="form-input">
+              <option value="">Selecciona un usuario...</option>
+              <!-- Las opciones se llenarán desde JS -->
+            </select>
+          </div>
+          
+          <div class="form-group" id="boleto-comentario-group">
+            <label class="form-label" for="boleto-comentario">Comentarios</label>
+            <textarea id="boleto-comentario" class="form-input" rows="2" placeholder="Ej. Cliente solicitó silla de ruedas, pariente de Juan, etc..."></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" id="btn-save-boleto">Guardar Cambios</button>
+        </form>
+      </div>
+    </div>
   </div>
 
   <!-- Modal para Agregar/Editar Eventos de la Agenda (Solo Administradores) -->
@@ -600,7 +682,10 @@
     }
   </style>
 
-  <!-- Lógica modular del Dashboard CRUD -->
-  <script type="module" src="../js/controllers/companiaController.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Panzoom (para interactividad en el mapa de Galerías) -->
+  <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
+  <!-- Main Script -->
+  <script type="module" src="../js/controllers/companiaController.js?v=2.3"></script>
 </body>
 </html>

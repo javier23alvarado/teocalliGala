@@ -2,7 +2,7 @@
 
 **Proyecto**: Ballet Folclórico Compañía Teocalli  
 **Repositorio**: `javier23alvarado/teocalliGala`  
-**Última actualización**: 21 de Julio del 2026, 18:33 hrs (Estado de Producción Consolidado)  
+**Última actualización**: 22 de Julio del 2026, 18:33 hrs (Estado de Producción Consolidado)  
 
 ---
 
@@ -108,7 +108,25 @@ c:/software/teocalli/
 
 ---
 
-## 🖼️ 5. Manejo de Imágenes de Perfil
+---
+
+## 🎟️ 5. Módulo de Boletos Gala (Teatro Galerías)
+
+### Gestión Visual Interactiva
+Se integró un nuevo panel exclusivo para Administradores bajo la sección **"Boletos Gala"**. Este panel renderiza una réplica exacta del layout de asientos del Teatro Galerías, basándose en la configuración de un archivo CSV que mapea cada cuadrante.
+
+### Características Técnicas del Módulo
+* **Canvas Interactivo (Panzoom)**: El mapa se inyecta en una cuadrícula CSS (Grid) contenida dentro de un lienzo interactivo con soporte para *panning* (arrastrar) y *zoom*. El mapa se auto-centra y ajusta a escala miniatura (`startScale`) para brindar una vista de pájaro al entrar.
+* **Integración Base de Datos (Firestore)**:
+  * **Documento Único**: Para economizar lecturas (costo/cuota), los 1,862 asientos se gestionan dentro de un único documento en Firestore (`gala/estadoBoletos`) estructurado como un gran objeto JSON.
+  * **Sincronización en Tiempo Real**: Un `onSnapshot` escucha los cambios y repinta el mapa al instante.
+* **Control y Asignación de Asientos**:
+  * Cada butaca (div) permite abrir un modal interactivo donde el administrador puede asignar el estado: **Libre**, **Reservado**, o **Vendido**.
+  * Se pueden vincular boletos al ID de un bailarín específico.
+  * Se agregó soporte para escribir notas o comentarios de clientes por cada asiento (ej. comprador, observaciones).
+* **Bloque de Escenario**: El área de "ESCENARIO" original (que ocupaba múltiples celdas en el CSV) fue optimizada para no ocupar 9 filas fantasma en el HTML. Se consolida en un solo bloque estético en la base, acercando el escenario real a las butacas.
+
+## 🖼️ 6. Manejo de Imágenes de Perfil
 
 Para evitar bloqueos de política CORS al subir archivos binarios a Firebase Storage sin configuración preflight en GCS, las fotos de perfil siguen este protocolo de optimización:
 1. El usuario selecciona cualquier archivo de imagen (soporta JPG, PNG, WebP e imágenes HEIC de cámaras iPhone).
@@ -118,7 +136,7 @@ Para evitar bloqueos de política CORS al subir archivos binarios a Firebase Sto
 
 ---
 
-## 💻 6. Modo Demo (Simulación Offline)
+## 💻 7. Modo Demo (Simulación Offline)
 
 Si las credenciales en `js/firebase-config.js` permanecen como marcadores de posición (`TU_API_KEY_AQUI`), la plataforma activa automáticamente el **Modo Demo**:
 * Simula las operaciones de autenticación, CRUD de usuarios y gestión de la agenda utilizando `localStorage` (`teocalli_demo_users`, `teocalli_demo_agenda`).
@@ -126,7 +144,7 @@ Si las credenciales en `js/firebase-config.js` permanecen como marcadores de pos
 
 ---
 
-## 🛠️ 7. Guía de Ejecución y Despliegue
+## 🛠️ 8. Guía de Ejecución y Despliegue
 
 ### Requisitos Previos
 * Node.js v16+

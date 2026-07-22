@@ -1888,3 +1888,88 @@ body {
   opacity: 1;
   transform: translateY(-1px);
 }
+
+/* ====================================================
+   BOLETOS GALA - MAPA INTERACTIVO
+   ==================================================== */
+.teatro-grid {
+  display: grid;
+  gap: 2px;
+  justify-content: center;
+  align-content: center;
+  margin: 0 auto;
+  overflow: auto;
+  padding-bottom: 20px;
+}
+
+.teatro-seat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+  font-size: 5px;
+  font-weight: 600;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s;
+  height: 14px;
+  min-width: 14px;
+}
+
+.teatro-seat:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  z-index: 2;
+}
+
+.seat-empty {
+  background-color: transparent !important;
+  border: none !important;
+  pointer-events: none;
+}
+
+/* Estado de los boletos según feedback */
+.seat-libre {
+  background-color: #ffffff;
+  border: 1px solid #1f2937;
+  color: #1f2937;
+}
+
+.seat-reservado {
+  background-color: #9ca3af;
+  border-color: #6b7280;
+  color: white;
+}
+
+.seat-vendido {
+  background-color: #db2777; /* Rosa oscuro/rojo */
+  border-color: #be185d;
+  color: white;
+}
+
+.seat-escenario {
+  background-color: #db2777; /* Rosa oscuro para combinar con tema o gris */
+  color: white;
+  border: none !important;
+  border-radius: 0;
+  cursor: default;
+  pointer-events: none;
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+
+/* Filtros del Mapa */
+.teatro-grid.filter-libres .teatro-seat:not(.seat-empty):not(.seat-libre),
+.teatro-grid.filter-reservados .teatro-seat:not(.seat-empty):not(.seat-reservado),
+.teatro-grid.filter-vendidos .teatro-seat:not(.seat-empty):not(.seat-vendido) {
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.map-container-wrapper {
+  border: 4px solid var(--primary-color) !important;
+  border-radius: 8px !important;
+  background-color: #fafafa !important;
+}
