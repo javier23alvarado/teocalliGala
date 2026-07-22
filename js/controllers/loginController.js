@@ -109,6 +109,8 @@ function showAlert(message, type = "danger") {
 // ====================================================================
 // MANEJO DE ERRORES POR URL Y SESIÓN ACTIVA
 // ====================================================================
+let isManualLogin = false;
+
 document.addEventListener("DOMContentLoaded", () => {
   // 1. Mostrar errores provenientes de redirecciones (ej. companiaController)
   const urlParams = new URLSearchParams(window.location.search);
@@ -137,7 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } else {
       onAuthStateChanged(auth, (user) => {
-        if (user) {
+        if (user && !isManualLogin) {
           const redirectPath = window.location.pathname.endsWith(".html") ? "compania.html" : "/compania";
           window.location.href = redirectPath;
         }
@@ -152,6 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
 loginForm.addEventListener("submit", async (e) => {
   // 1. CONTROL DE EVENTOS: Prevenir la recarga tradicional de manera inmediata
   e.preventDefault();
+  isManualLogin = true;
   
   const email = emailInput.value.trim();
   const password = passwordInput.value;
@@ -174,7 +177,7 @@ loginForm.addEventListener("submit", async (e) => {
         }
 
         // --- INTERCEPTOR DE CONTRASEÑA OBLIGATORIA MODO DEMO ---
-        if (user.requiereCambioPassword === true) {
+        if (user.requiereCambioPassword === true || password === "teocalli2026") {
           showLoading(false);
           loginForm.style.display = "none";
           const forcePasswordForm = document.getElementById("force-password-form");
@@ -269,7 +272,7 @@ loginForm.addEventListener("submit", async (e) => {
         }
 
         // --- INTERCEPTOR DE CONTRASEÑA OBLIGATORIA MODO PRODUCCIÓN REAL ---
-        if (userData.requiereCambioPassword === true) {
+        if (userData.requiereCambioPassword === true || password === "teocalli2026") {
           showLoading(false);
           loginForm.style.display = "none";
           const forcePasswordForm = document.getElementById("force-password-form");

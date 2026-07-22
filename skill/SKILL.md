@@ -29,8 +29,8 @@ This skill provides comprehensive operational guidelines, architectural constrai
    * Convert user avatar uploads to **200x200px Base64 WebP** using an HTML5 Canvas element before saving into the `fotoPerfil` attribute of `/usuarios`.
 
 4. **Security & Route Guarding**:
-   * Keep `.dashboard-wrapper` hidden (`display: none;`) by default until `onAuthStateChanged` validates the active session to prevent flickering during redirect transitions.
-   * Enforce the initial password update flow: new accounts generated with default password `teocalli2026` must be redirected to the password change form on `login.html`.
+   * Keep `.dashboard-wrapper` hidden (`display: none;`) by default until `onAuthStateChanged` validates the active session to prevent flickering durante redirect transitions.
+   * **Login and Password Interception**: New accounts are generated with the default password `teocalli2026`. You must intercept this password manually inside the submit handler to force a password change. To prevent `onAuthStateChanged` from prematurely redirecting users during a manual login, use the `isManualLogin` flag to temporarily disable automatic redirects.
 
 ---
 
