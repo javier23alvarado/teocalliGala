@@ -13,9 +13,11 @@ This skill provides comprehensive operational guidelines, architectural constrai
 
 1. **Directory Organization Constraint**:
    * All CSS styles MUST be placed in `css/style.css`.
-   * All JavaScript logic files MUST reside in `js/` (e.g. `js/firebase-config.js`, `js/login.js`, `js/compania.js`).
+   * All JavaScript logic files MUST reside in `js/` (e.g. `js/firebase-config.js`, `js/login.js`, `js/compania.js`, `js/public-gala.js`).
    * Images and visual branding assets MUST be stored under `assets/images/`.
-   * HTML pages (`index.html`, `login.html`, `compania.html`) remain at the workspace root for direct Firebase Hosting routing.
+   * HTML pages (`index.html`, `login.html`, `compania.html`) remain at the workspace root.
+   * `index.html` is the public-facing landing page (currently heavily optimized for the "Gala" event with static modals and WhatsApp redirects).
+   * `compania.html` is the strict, isolated private Dashboard for members.
 
 2. **Firebase & Cloud Firestore Conventions**:
    * Always import Firebase SDK v9 modular instances from `./firebase-config.js` when working inside `js/`.
