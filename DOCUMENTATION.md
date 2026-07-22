@@ -2,13 +2,13 @@
 
 **Proyecto**: Ballet Folclórico Compañía Teocalli  
 **Repositorio**: `javier23alvarado/teocalliGala`  
-**Última actualización**: Julio 2026  
+**Última actualización**: 21 de Julio del 2026 (Estado de Producción)  
 
 ---
 
 ## 📋 1. Visión General del Proyecto
 
-Plataforma web integral para el Ballet Folclórico Compañía Teocalli. Combina una vista pública para difusión cultural, venta de talleres y fechas de cartelera abiertas, con un portal privado para la administración de miembros, perfiles individuales, gestión de compañías y un módulo completo de agenda con calendarios interactivos y notificaciones.
+Plataforma web integral para el Ballet Folclórico Compañía Teocalli. Combina una vista pública para difusión cultural, venta de talleres y fechas de cartelera abiertas (actualmente con un layout minimalista de alto impacto visual diseñado exclusivamente para el evento Gala), con un portal privado para la administración de miembros, perfiles individuales, gestión de compañías y un módulo completo de agenda con calendarios interactivos y notificaciones.
 
 ### Stack Tecnológico
 * **Frontend**: HTML5 Semántico, CSS3 Vanilla (tokens personalizados, HSL, Glassmorphism), JavaScript ES Modules.
@@ -32,9 +32,9 @@ c:/software/teocalli/
 │   └── compania.js              # Lógica de SPA (Resumen, Usuarios, Perfil, Agenda)
 ├── skill/
 │   └── SKILL.md                 # Guía operativa y reglas para Agentes de IA
-├── index.html                   # Landing page pública y Cartelera Abierta
+├── index.html                   # Landing page pública y Cartelera Abierta (Layout Minimalista Gala)
 ├── login.html                   # Formulario de inicio de sesión y cambio de clave obligatorio
-├── compania.html                # Panel privado de control (Dashboard SPA)
+├── compania.html                # Panel privado de control (Dashboard SPA, estado puro maestro)
 ├── firestore.rules              # Reglas de seguridad de Cloud Firestore
 ├── firebase.json                # Configuración de Firebase Hosting y Clean URLs
 ├── init-superadmin.js           # Script Node.js para sembrar el primer Super Administrador
