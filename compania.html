@@ -46,12 +46,6 @@
               <span>Agenda / Calendario</span>
             </a>
           </li>
-          <li id="sidebar-opt-gala">
-            <a class="sidebar-link" id="btn-gala">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-              <span>Taquilla Gala</span>
-            </a>
-          </li>
         </ul>
       </nav>
 
@@ -592,113 +586,6 @@
         </form>
       </div>
     </div>
-  </div>
-
-  <!-- ====================================================
-       SECCIÓN 5: TAQUILLA GALA
-       ==================================================== -->
-  <section id="db-section-gala" class="db-section">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-      <div>
-        <h3 class="text-serif" style="margin-top: 0;">Gestión de Taquilla</h3>
-        <p style="color: var(--text-muted); font-size: 0.9rem;">Asigna boletos a bailarines y gestiona la venta del teatro.</p>
-      </div>
-      <div id="gala-admin-actions" style="display: none; gap: 10px;">
-        <button class="btn btn-secondary" id="btn-seed-seats" style="background-color: #d81b60; color: white; border: none;" title="¡PRECAUCIÓN! Esto borrará el estado actual de los asientos.">
-          [!] Forzar Inicializar Asientos
-        </button>
-      </div>
-    </div>
-
-    <!-- Panel de Métricas de Taquilla -->
-    <div class="metrics-grid" style="margin-bottom: 20px;">
-      <div class="metric-card">
-        <div class="metric-title">Mis Asientos Asignados</div>
-        <div class="metric-value" id="gala-metric-total">0</div>
-      </div>
-      <div class="metric-card" style="border-left: 4px solid #cbd5e1;">
-        <div class="metric-title">Disponibles (Libres)</div>
-        <div class="metric-value" id="gala-metric-libres">0</div>
-      </div>
-      <div class="metric-card" style="border-left: 4px solid #f6c23e;">
-        <div class="metric-title">Reservados</div>
-        <div class="metric-value" id="gala-metric-reservados">0</div>
-      </div>
-      <div class="metric-card" style="border-left: 4px solid #444;">
-        <div class="metric-title">Vendidos</div>
-        <div class="metric-value" id="gala-metric-vendidos">0</div>
-      </div>
-    </div>
-
-    <div class="panel-section">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-        <h3 class="text-serif" style="margin: 0; font-size: 1.2rem;">Mapa del Teatro Galerías</h3>
-        
-        <div id="gala-admin-assign-group" style="display: none; align-items: center; gap: 10px;">
-          <select id="gala-select-seller" class="form-input" style="padding: 6px; font-size: 0.85rem;">
-            <option value="">-- Seleccionar Vendedor --</option>
-            <!-- Llenado dinámicamente con usuarios -->
-          </select>
-          <button class="btn btn-primary" id="btn-assign-seats" style="padding: 6px 12px; font-size: 0.85rem;">Asignar Selección</button>
-        </div>
-      </div>
-
-      <div class="gala-map-legend" style="justify-content: flex-start;">
-        <div class="legend-item"><div class="legend-color" style="background-color: #cbd5e1;"></div>Libre</div>
-        <div class="legend-item"><div class="legend-color seat-reservado"></div>Reservado</div>
-        <div class="legend-item"><div class="legend-color seat-vendido"></div>Vendido</div>
-        <div class="legend-item"><div class="legend-color" style="outline: 3px solid #d81b60;"></div>Seleccionado</div>
-      </div>
-      
-      <div class="gala-map-legend" style="justify-content: flex-start; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 10px; margin-top: 10px;" id="gala-section-legend">
-        <!-- Zonas (solo Admin) -->
-        <div class="legend-item admin-only"><div class="legend-color seat-sec-1"></div>Sec 1</div>
-        <div class="legend-item admin-only"><div class="legend-color seat-sec-2"></div>Sec 2</div>
-        <div class="legend-item admin-only"><div class="legend-color seat-sec-3"></div>Sec 3</div>
-        <div class="legend-item admin-only"><div class="legend-color seat-sec-4"></div>Sec 4</div>
-        <div class="legend-item admin-only"><div class="legend-color seat-sec-5"></div>Sec 5</div>
-        <div class="legend-item admin-only"><div class="legend-color seat-sec-6"></div>Sec 6</div>
-      </div>
-
-      <div class="gala-map-wrapper">
-        <div class="gala-stage">ESCENARIO</div>
-        <!-- Contenedor del Grid (sin Pan&Zoom, overflow natural) -->
-        <div class="gala-seat-grid" id="gala-map-container">
-          <!-- Asientos dinámicos -->
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- Modal Gestión de Asiento -->
-  <div class="modal-overlay" id="gala-seat-modal-overlay"></div>
-  <div class="modal-container" id="gala-seat-modal" style="max-width: 400px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-      <h3 class="text-serif" style="margin: 0;">Gestionar Asiento</h3>
-      <button class="btn" id="btn-close-gala-modal" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;">&times;</button>
-    </div>
-    
-    <div style="background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
-      <h2 id="gala-modal-seat-id" style="margin: 0; color: var(--primary); font-size: 2rem;">--</h2>
-      <p id="gala-modal-seat-zone" style="margin: 5px 0 0 0; font-size: 0.9rem; color: var(--text-muted);">Sección --</p>
-    </div>
-
-    <div class="form-group admin-only" id="gala-modal-admin-info" style="display: none;">
-      <label class="form-label">Asignado a:</label>
-      <div id="gala-modal-seller-name" style="font-weight: 600; padding: 10px; background: white; border: 1px solid var(--border-color); border-radius: 6px;">Nadie</div>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label">Cambiar Estado</label>
-      <select id="gala-modal-status" class="form-input">
-        <option value="LIBRE">Libre</option>
-        <option value="RESERVADO">Reservado</option>
-        <option value="VENDIDO">Vendido</option>
-      </select>
-    </div>
-
-    <button class="btn btn-primary btn-block" id="btn-save-gala-seat">Guardar Cambios</button>
   </div>
 
   <!-- Loading Overlay -->
