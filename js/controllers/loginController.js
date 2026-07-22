@@ -1,10 +1,11 @@
 // login.js - Lógica de inicio de sesión definitiva y robusta para la Compañía Teocalli
-import { auth, db } from "./firebase-config.js";
+import { auth, db, firebaseConfig } from "../services/firebaseService.js";
 
 // Firebase Auth & Firestore v9.23.0 modular CDN Imports
 import { 
   signInWithEmailAndPassword, 
-  signOut 
+  signOut,
+  onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
 import { 
@@ -104,6 +105,46 @@ function showAlert(message, type = "danger") {
     alert(message);
   }
 }
+
+// ====================================================================
+// MANEJO DE ERRORES POR URL Y SESIÓN ACTIVA
+// ====================================================================
+document.addEventListener("DOMContentLoaded", () => {
+  // 1. Mostrar errores provenientes de redirecciones (ej. companiaController)
+  const urlParams = new URLSearchParams(window.location.search);
+  const errorParam = urlParams.get("error");
+  
+  if (errorParam) {
+    if (errorParam === "inactive") {
+      showAlert("Acceso denegado. Su cuenta se encuentra inactiva.", "danger");
+    } else if (errorParam === "not_found") {
+      showAlert("El usuario no está registrado en el sistema de la compañía.", "danger");
+    } else if (errorParam === "permissions") {
+      showAlert("Error de permisos. No tienes acceso a la base de datos.", "danger");
+    }
+    
+    // Limpiar la URL para que no persista el error al recargar
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  // 2. Redirigir automáticamente si ya hay una sesión activa Y no hubo un error reciente
+  if (!errorParam) {
+    if (isDemoMode) {
+      const demoSession = sessionStorage.getItem("demo_active_user");
+      if (demoSession) {
+        const redirectPath = window.location.pathname.endsWith(".html") ? "compania.html" : "/compania";
+        window.location.href = redirectPath;
+      }
+    } else {
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          const redirectPath = window.location.pathname.endsWith(".html") ? "compania.html" : "/compania";
+          window.location.href = redirectPath;
+        }
+      });
+    }
+  }
+});
 
 // ====================================================================
 // CONTROLADOR DE EVENTO SUBMIT

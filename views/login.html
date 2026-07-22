@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar Sesión | Compañía Teocalli</title>
+  <meta name="description" content="Portal de acceso administrativo del Ballet Folclórico Compañía Teocalli.">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body style="background: radial-gradient(circle at 50% 50%, rgba(209, 26, 91, 0.08) 0%, var(--bg-site) 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;">
+
+  <div class="login-card">
+    <div class="login-header">
+      <a href="../index.html" style="display: inline-block; text-decoration: none; margin-bottom: 12px;">
+        <img src="../assets/images/teocalli.jfif" alt="Logo Teocalli" style="width: 72px; height: 72px; object-fit: contain; border-radius: 8px;">
+      </a>
+      <h2 class="login-title text-serif">Ballet Folklórico Teocalli</h2>
+    </div>
+    
+    <!-- Alertas de Feedback -->
+    <div id="login-alert" class="alert"></div>
+
+    <form id="login-form">
+      <div class="form-group">
+        <label class="form-label" for="login-email">Correo Electrónico</label>
+        <input type="email" id="login-email" class="form-input" required placeholder="correo@ejemplo.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="login-password">Contraseña</label>
+        <div class="password-wrapper" style="position: relative;">
+          <input type="password" id="login-password" class="form-input" required placeholder="••••••••" style="padding-right: 40px;">
+          <button type="button" class="btn-toggle-password" data-target="login-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #6b7280; padding: 0; display: flex; align-items: center; justify-content: center;" title="Mostrar/Ocultar contraseña">
+            <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="btn-login-submit" style="margin-top: 10px;">Ingresar</button>
+    </form>
+    
+    <!-- Formulario para Cambio Obligatorio de Contraseña (Primer Inicio de Sesión) -->
+    <form id="force-password-form" style="display: none;">
+      <p class="login-subtitle" style="margin-bottom: 20px; color: var(--primary); font-size: 14px; line-height: 1.5; text-align: center;">
+        <strong>🔑 Cambio de Contraseña Requerido</strong><br>
+        Esta es la primera vez que ingresas al sistema. Para mayor seguridad, debes actualizar tu contraseña por una nueva contraseña personal.
+      </p>
+      <div class="form-group">
+        <label class="form-label" for="force-new-password">Nueva Contraseña</label>
+        <div class="password-wrapper" style="position: relative;">
+          <input type="password" id="force-new-password" class="form-input" required placeholder="Mínimo 6 caracteres" minlength="6" style="padding-right: 40px;">
+          <button type="button" class="btn-toggle-password" data-target="force-new-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #6b7280; padding: 0; display: flex; align-items: center; justify-content: center;" title="Mostrar/Ocultar contraseña">
+            <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="force-confirm-password">Confirmar Nueva Contraseña</label>
+        <div class="password-wrapper" style="position: relative;">
+          <input type="password" id="force-confirm-password" class="form-input" required placeholder="Confirma la contraseña" minlength="6" style="padding-right: 40px;">
+          <button type="button" class="btn-toggle-password" data-target="force-confirm-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #6b7280; padding: 0; display: flex; align-items: center; justify-content: center;" title="Mostrar/Ocultar contraseña">
+            <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top: 10px;">Establecer Contraseña e Ingresar</button>
+    </form>
+    
+    <div class="login-back-btn">
+      <a href="../index.html">&larr; Volver al sitio principal</a>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(253, 251, 247, 0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; flex-direction: column; gap: 16px;">
+    <div style="width: 48px; height: 48px; border: 4px solid var(--primary-light); border-top-color: var(--primary); border-radius: 999px; animation: spin 1s linear infinite;"></div>
+    <span style="font-weight: 600; color: var(--primary);">Cargando...</span>
+  </div>
+
+  <style>
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+
+  <!-- Lógica modular de Login -->
+  <script type="module" src="../js/controllers/loginController.js"></script>
+
+  <!-- Script para alternar visibilidad de contraseña (directo en HTML para evitar caché) -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const toggleButtons = document.querySelectorAll('.btn-toggle-password');
+      toggleButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+          e.preventDefault(); // Evitar cualquier envío accidental
+          const targetId = this.getAttribute('data-target');
+          const inputField = document.getElementById(targetId);
+          
+          if (inputField && inputField.type === 'password') {
+            inputField.type = 'text';
+            // Cambiar a ojo cerrado
+            this.innerHTML = '<svg class="eye-icon" style="pointer-events: none;" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+          } else if (inputField) {
+            inputField.type = 'password';
+            // Cambiar a ojo abierto
+            this.innerHTML = '<svg class="eye-icon" style="pointer-events: none;" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

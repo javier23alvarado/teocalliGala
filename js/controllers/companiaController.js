@@ -1,5 +1,5 @@
 // Firebase Auth & Firestore v9.23.0 modular CDN Imports
-import { auth, db, storage, firebaseConfig } from "./firebase-config.js";
+import { auth, db, storage, firebaseConfig } from "../services/firebaseService.js";
 
 import { 
   onAuthStateChanged, 
@@ -257,7 +257,7 @@ if (isDemoMode) {
           if (userData.activo !== true) {
             await signOut(auth);
             sessionStorage.clear();
-            window.location.href = LOGIN_REDIRECT;
+            window.location.href = LOGIN_REDIRECT + "?error=inactive";
             return;
           }
 
@@ -269,11 +269,13 @@ if (isDemoMode) {
         } else {
           await signOut(auth);
           sessionStorage.clear();
-          window.location.href = LOGIN_REDIRECT;
+          window.location.href = LOGIN_REDIRECT + "?error=not_found";
         }
       } catch (error) {
         console.error("Error al recuperar sesión de base de datos:", error);
-        window.location.href = LOGIN_REDIRECT;
+        await signOut(auth);
+        sessionStorage.clear();
+        window.location.href = LOGIN_REDIRECT + "?error=permissions";
       }
     }
   });

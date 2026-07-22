@@ -10,11 +10,11 @@
     "rewrites": [
       {
         "source": "/login",
-        "destination": "/login.html"
+        "destination": "/views/login.html"
       },
       {
         "source": "/compania",
-        "destination": "/compania.html"
+        "destination": "/views/compania.html"
       }
     ]
   }
