@@ -64,82 +64,47 @@
       </a>
     </div>
     <p class="footer-copy">&copy; 2026 Ballet Folclórico Compañía Teocalli. Todos los derechos reservados.</p>
-    <div class="developer-credit">Created by <a href="https://www.linkedin.com/in/javier-alvarado-72402621a?utm_source=share_via&utm_content=profile&utm_medium=member_ios" target="_blank" rel="noopener">Javier Alvarado</a></div>
+    <div class="developer-credit">
+      <span>Created by Javier Alvarado</span>
+      <a href="https://www.linkedin.com/in/javier-alvarado-72402621a?utm_source=share_via&utm_content=profile&utm_medium=member_ios" target="_blank" rel="noopener" aria-label="LinkedIn Javier Alvarado" class="linkedin-link">
+        <svg class="linkedin-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.25V10.9H6.46M7.86 6.78a1.63 1.63 0 1 0 0 3.26 1.63 1.63 0 0 0 0-3.26Z"/></svg>
+      </a>
+    </div>
   </footer>
 
-  <!-- Modal Reserva Gala -->
-  <div id="modal-reserva-gala" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
-    <div style="background-color: #1a1a1f; border-radius: 12px; width: 95%; max-width: 900px; max-height: 90vh; overflow-y: auto; position: relative; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
-       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
-         <h2 class="text-serif" style="color: white; margin: 0; font-size: 1.5rem;">Selecciona tus Lugares</h2>
-         <button id="btn-close-reserva" style="background: none; border: none; color: white; font-size: 2rem; cursor: pointer; opacity: 0.7;">&times;</button>
-       </div>
-       
-       <!-- Taquilla Pública (Mapa Interactivo) -->
-       <section id="public-map-section" style="color: white;">
-         <div style="text-align: center; width: 100%;">
-           <div class="gala-map-legend" style="justify-content: center; margin-bottom: 20px; color: white; display: flex; gap: 15px; flex-wrap: wrap;">
-             <div class="legend-item" style="display: flex; align-items: center; gap: 6px;"><div class="legend-color" style="background-color: #cbd5e1; width: 14px; height: 14px; border-radius: 2px;"></div><span style="color: #ccc; font-size: 0.85rem;">Libre</span></div>
-             <div class="legend-item" style="display: flex; align-items: center; gap: 6px;"><div class="legend-color seat-reservado" style="width: 14px; height: 14px; border-radius: 2px;"></div><span style="color: #ccc; font-size: 0.85rem;">Reservado</span></div>
-             <div class="legend-item" style="display: flex; align-items: center; gap: 6px;"><div class="legend-color seat-vendido" style="width: 14px; height: 14px; border-radius: 2px;"></div><span style="color: #ccc; font-size: 0.85rem;">Vendido</span></div>
-             <div class="legend-item" style="display: flex; align-items: center; gap: 6px;"><div class="legend-color" style="outline: 3px solid #d81b60; background: transparent; width: 14px; height: 14px; border-radius: 2px;"></div><span style="color: #ccc; font-size: 0.85rem;">Tu Selección</span></div>
-           </div>
-           
-           <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
-             <!-- Mapa -->
-             <div style="flex: 1; min-width: 300px; max-width: 800px; text-align: center;">
-               <div class="gala-map-wrapper">
-                 <div class="gala-stage">ESCENARIO</div>
-                 <div class="gala-seat-grid" id="public-map-container" style="background: transparent;">
-                   <!-- Asientos dinámicos renderizados por public-gala.js -->
-                 </div>
-               </div>
-             </div>
-             
-             <!-- Carrito -->
-             <div style="width: 300px; background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); height: fit-content; text-align: left;">
-               <h3 class="text-serif" style="margin-top: 0; color: white;">Tus Boletos</h3>
-               <p style="color: #aaa; font-size: 14px; margin-bottom: 15px;">Seleccionados: <span id="public-cart-total" style="color: #d81b60; font-weight: bold; font-size: 18px;">0</span></p>
-               
-               <div id="public-cart-items" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; max-height: 250px; overflow-y: auto;">
-                 <p style="color: #888; font-size: 13px; text-align: center;">Haz clic en un asiento libre para seleccionarlo.</p>
-               </div>
-               
-               <button class="btn btn-primary" id="btn-public-checkout" style="width: 100%; opacity: 0.5; pointer-events: none;">Continuar Reserva</button>
-             </div>
-           </div>
-         </div>
-       </section>
-    </div>
-  </div>
-
-  <!-- Modal Checkout Público -->
-  <div id="modal-checkout-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2002; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
-    <div id="modal-checkout" style="background-color: #1a1a1f; color: white; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; width: 95%; max-width: 400px; padding: 25px; position: relative;">
-      <h3 class="text-serif" style="margin-top: 0; margin-bottom: 10px; font-size: 1.4rem; color: white;">Completa tu Reserva</h3>
-      <p style="color: #aaa; font-size: 0.9rem; margin-bottom: 20px;">Ingresa tus datos para generar tu solicitud de reserva vía WhatsApp. Un encargado te confirmará tu pago y boletos.</p>
-      
-      <div class="form-group" style="margin-bottom: 15px;">
-        <label class="form-label" for="checkout-name" style="display:block; margin-bottom: 5px; color: #ddd; font-size: 14px;">Nombre Completo</label>
-        <input type="text" id="checkout-name" class="form-input" placeholder="Ej. María López" style="width: 100%; padding: 10px; border-radius: 6px; background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.2);">
+  <!-- Modal Reserva Gala Estático -->
+  <div id="modal-reserva-gala" class="gala-modal-overlay">
+    <div class="gala-modal-content">
+      <div class="gala-modal-header">
+        <div>
+          <h2 class="text-serif gala-modal-title">Adquiere tus Boletos</h2>
+          <p class="gala-modal-subtitle">Gala Savia de mi Tierra &bull; Teatro Galerías</p>
+        </div>
+        <button id="btn-close-reserva" class="gala-modal-close">&times;</button>
       </div>
       
-      <div class="form-group" style="margin-bottom: 20px;">
-        <label class="form-label" for="checkout-phone" style="display:block; margin-bottom: 5px; color: #ddd; font-size: 14px;">Teléfono (WhatsApp)</label>
-        <input type="tel" id="checkout-phone" class="form-input" placeholder="10 dígitos" style="width: 100%; padding: 10px; border-radius: 6px; background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.2);">
+      <div class="gala-modal-body">
+        <div class="gala-price-badge">
+          Costo por boleto: <strong>$400 MXN</strong>
+        </div>
+        
+        <div class="gala-map-section">
+          <h3 class="gala-map-title">Selecciona tus lugares</h3>
+          <img src="assets/images/teatro.jpeg" alt="Mapa del Teatro Galerías" class="modal-teatro-img" onerror="this.src='assets/images/gala.jpg'">
+        </div>
       </div>
       
-      <div style="display: flex; gap: 10px;">
-        <button class="btn btn-secondary" id="btn-cancel-checkout" style="flex: 1; padding: 10px; background: transparent; color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; cursor: pointer;">Cancelar</button>
-        <button class="btn btn-primary" id="btn-confirm-checkout" style="flex: 1; padding: 10px; background-color: #d81b60; color: white; border: none; border-radius: 6px; cursor: pointer;">Enviar Reserva</button>
+      <div class="gala-modal-footer">
+        <a href="https://wa.me/523314393400?text=Hola%20estoy%20interesado%20en%20ver%20Savia%20de%20mi%20tierra%20teocalli%20en%20Teatro%20galerias%20el%2022%20de%20agosto,%20dos%20asientos%20el%20A100%20y%20A102,%20me%20das%20informes%20para%20adquirir." target="_blank" class="btn btn-whatsapp" id="btn-contact-whatsapp">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+          Contactar por WhatsApp
+        </a>
       </div>
     </div>
   </div>
-
-  <div id="gala-tooltip"></div>
 
   <!-- Script de Gala Público -->
-  <script type="module" src="js/public-gala.js"></script>
+  <script src="js/public-gala.js"></script>
 
 </body>
 </html>

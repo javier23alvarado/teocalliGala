@@ -2,13 +2,13 @@
 
 **Proyecto**: Ballet Folclórico Compañía Teocalli  
 **Repositorio**: `javier23alvarado/teocalliGala`  
-**Última actualización**: 21 de Julio del 2026 (Estado de Producción)  
+**Última actualización**: 21 de Julio del 2026, 18:33 hrs (Estado de Producción Consolidado)  
 
 ---
 
 ## 📋 1. Visión General del Proyecto
 
-Plataforma web integral para el Ballet Folclórico Compañía Teocalli. Combina una vista pública para difusión cultural, venta de talleres y fechas de cartelera abiertas (actualmente con un layout minimalista de alto impacto visual diseñado exclusivamente para el evento Gala), con un portal privado para la administración de miembros, perfiles individuales, gestión de compañías y un módulo completo de agenda con calendarios interactivos y notificaciones.
+Plataforma web integral para el Ballet Folclórico Compañía Teocalli. Combina una vista pública para difusión cultural, venta de talleres y fechas de cartelera abiertas (actualmente con un layout minimalista de alto impacto visual diseñado exclusivamente para el evento Gala, con un modal de contacto por WhatsApp), con un portal privado para la administración de miembros, perfiles individuales, gestión de compañías y un módulo completo de agenda con calendarios interactivos y notificaciones.
 
 ### Stack Tecnológico
 * **Frontend**: HTML5 Semántico, CSS3 Vanilla (tokens personalizados, HSL, Glassmorphism), JavaScript ES Modules.
@@ -104,7 +104,7 @@ c:/software/teocalli/
 * **Calendario Mensual Interactivo**: Renderiza los días del mes actual con badges identificadores según la actividad (Rosa = Ensayo, Púrpura = Presentación, Naranja = Taller).
 * **Ensayos Recurrentes por Período**: Al crear un ensayo, los administradores pueden activar la casilla de recurrencia e ingresar una *Fecha Inicio* y *Fecha Fin*, seleccionando opcionalmente días específicos de la semana (ej. Lun, Mié, Vie). El sistema procesa y genera automáticamente la serie de eventos individuales en lote mediante llamadas paralelas (`Promise.all`).
 * **Widget de Recordatorios**: En la pantalla de bienvenida del dashboard se filtran y muestran los eventos de "Hoy" y de los "Próximos 7 días".
-* **Cartelera Pública (`index.html`)**: La landing page consulta la colección `/agenda` de Firestore en tiempo real para mostrar las presentaciones y talleres futuros sin requerir autenticación.
+* **Cartelera Pública y Taquilla Gala (`index.html`)**: La landing page pública actualmente está optimizada con un diseño oscuro minimalista. Cuenta con un Modal de Taquilla (Reserva de Boletos) que redirige directamente a la API de WhatsApp de la compañía, aislando esta lógica de venta directa del panel de administración interno.
 
 ---
 
