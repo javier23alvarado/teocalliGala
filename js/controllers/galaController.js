@@ -9,7 +9,8 @@ const btnCloseReserva = document.getElementById("btn-close-reserva");
 const btnContactWhatsapp = document.getElementById("btn-contact-whatsapp");
 
 const publicMapGrid = document.getElementById("public-teatro-map-grid");
-const lblAsientos = document.getElementById("lbl-asientos-seleccionados");
+const lblCount = document.getElementById("lbl-count");
+const badgesContainer = document.getElementById("seat-badges-container");
 const lblTotal = document.getElementById("lbl-total-pagar");
 
 const BOLETO_PRECIO = 400;
@@ -103,11 +104,12 @@ function renderPublicMapGrid(mapData) {
     escDiv.style.display = 'flex';
     escDiv.style.alignItems = 'center';
     escDiv.style.justifyContent = 'center';
-    escDiv.style.backgroundColor = '#fdf2f8'; 
-    escDiv.style.border = '3px solid #db2777'; 
-    escDiv.style.color = '#db2777';
+    escDiv.style.backgroundColor = 'transparent'; 
+    escDiv.style.border = '2px solid rgba(233,30,99,0.5)'; 
+    escDiv.style.color = '#E91E63';
+    escDiv.style.textShadow = '0 0 10px rgba(233,30,99,0.5)';
     escDiv.style.fontWeight = 'bold';
-    escDiv.style.letterSpacing = '10px';
+    escDiv.style.letterSpacing = '18px';
     escDiv.style.fontSize = '14px';
     escDiv.style.borderRadius = '8px';
     escDiv.textContent = 'ESCENARIO';
@@ -197,20 +199,30 @@ function updateCartUI() {
   const count = selectedSeats.size;
   const total = count * BOLETO_PRECIO;
   
-  lblAsientos.textContent = count;
+  if (lblCount) lblCount.textContent = count;
   lblTotal.textContent = `${total} MXN`;
+  
+  // Render badges
+  if (badgesContainer) {
+    if (count === 0) {
+      badgesContainer.innerHTML = '<span style="color: #52525b; font-size: 0.9rem; font-style: italic;">Ninguno</span>';
+    } else {
+      badgesContainer.innerHTML = Array.from(selectedSeats)
+        .sort()
+        .map(seat => `<span class="badge-seat" onclick="window.removeSeat('${seat}')" title="Haz clic para remover">[${seat}] &times;</span>`)
+        .join('');
+    }
+  }
   
   if (count > 0) {
     const seatsArray = Array.from(selectedSeats).sort().join(', ');
     const msg = `Hola, estoy interesado en adquirir boletos para la Gala "Savia de mi Tierra" el 22 de Agosto.\n\nMe interesan ${count} lugares: *(${seatsArray})*.\nTotal estimado: ${total} MXN.\n\n¿Me proporcionas información para realizar el pago?`;
     const encodedMsg = encodeURIComponent(msg);
     btnContactWhatsapp.href = `https://wa.me/523314393400?text=${encodedMsg}`;
-    btnContactWhatsapp.style.opacity = '1';
-    btnContactWhatsapp.style.pointerEvents = 'auto';
+    btnContactWhatsapp.classList.remove('disabled');
   } else {
     btnContactWhatsapp.href = '#';
-    btnContactWhatsapp.style.opacity = '0.5';
-    btnContactWhatsapp.style.pointerEvents = 'none';
+    btnContactWhatsapp.classList.add('disabled');
   }
 }
 
@@ -241,5 +253,4 @@ btnContactWhatsapp.addEventListener('click', async (e) => {
 
 // Bloquear el botón de WhatsApp inicialmente
 btnContactWhatsapp.href = '#';
-btnContactWhatsapp.style.opacity = '0.5';
-btnContactWhatsapp.style.pointerEvents = 'none';
+btnContactWhatsapp.classList.add('disabled');

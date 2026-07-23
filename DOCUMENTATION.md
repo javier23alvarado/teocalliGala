@@ -126,14 +126,16 @@ Se integró un nuevo panel exclusivo para Administradores bajo la sección **"Bo
   * Se agregó soporte para escribir notas o comentarios de clientes por cada asiento (ej. comprador, observaciones).
 * **Bloque de Escenario**: El área de "ESCENARIO" original (que ocupaba múltiples celdas en el CSV) fue optimizada para no ocupar 9 filas fantasma en el HTML. Se consolida en un solo bloque estético en la base, acercando el escenario real a las butacas.
 
-### Taquilla Pública Interactiva (index.html)
-El modal público fue transformado en una taquilla viva e inteligente:
-* **Mapa Compartido en Tiempo Real**: Consume el mismo esquema JSON (mapaGaleriasLayout) y el mismo documento de Firestore (`gala/estadoBoletos`) que el panel administrativo. Los asientos ocupados se bloquean visualmente al instante.
-* **Carrito y Cotización**: Los usuarios pueden hacer clic en butacas libres (resaltadas en rosa corporativo #db2777). El sistema calcula dinámicamente un costo fijo de $400 MXN por boleto, y previene la selección si el estado no es "libre".
+### Taquilla Pública Interactiva (index.html) - Rediseño Elite UI/UX
+El modal público fue transformado en una taquilla viva, inteligente y de diseño premium (Dark Theme):
+* **Glassmorphism y Dark Theme**: El modal público cuenta con un diseño de alta gama que incluye fondos oscuros (`#121218`), efectos de desenfoque (`backdrop-filter`) y alto contraste para maximizar la visibilidad de las butacas sobre un lienzo inmersivo. El botón de compra y los acentos visuales utilizan un gradiente magenta/rosa brillante.
+* **Mapa Compartido en Tiempo Real**: Consume el mismo esquema JSON (mapaGaleriasLayout) y el mismo documento de Firestore (`gala/estadoBoletos`) que el panel administrativo. Los asientos ocupados se bloquean visualmente al instante y adoptan un tono opaco no interactivo.
+* **Carrito y Estadísticas Dinámicas**: Los usuarios pueden hacer clic en butacas libres (resaltadas con un borde visible sobre el fondo oscuro). Al seleccionar, el asiento hace una animación de escala y estalla en color Rosa Neón (`#E91E63`) con un glow luminoso.
+* **Dashboard Inferior e Insignias (Badges)**: El resumen de compra muestra un contador dinámico y el costo fijo calculado (ej: $400 MXN por boleto). Cada asiento seleccionado genera una insignia flotante interactiva (ej: `[A10] ×`) que al ser presionada permite deseleccionar el asiento instantáneamente de la canasta.
 * **Reservas con Auto-Liberación (24 Hrs)**: 
-  * Al dar clic en "Reservar Ahora", los asientos se graban en Firestore con estado **'reservado'**, el campo `reservaUser: 'publico'` y un `reservaDate` con el timestamp exacto (Date.now()).
+  * Al dar clic en "Reservar por WhatsApp", los asientos se graban en Firestore con estado **'reservado'**, el campo `reservaUser: 'publico'` y un `reservaDate` con el timestamp exacto (Date.now()).
   * Inmediatamente abre la API de WhatsApp con un mensaje pre-formateado detallando los asientos (`(A100, A102)`) y el monto.
-  * **Expiración**: Tanto el panel público como el de administración calculan el tiempo transcurrido desde `reservaDate`. Si han pasado **más de 24 horas** y el administrador no los ha transicionado manualmente a "vendido", el asiento vuelve a renderizarse y considerarse como **'libre'** para la venta pública.
+  * **Expiración**: Si han pasado **más de 24 horas** y el administrador no los ha transicionado manualmente a "vendido", el asiento vuelve a renderizarse y considerarse como **'libre'** para la venta pública.
 
 
 ## 🖼️ 6. Manejo de Imágenes de Perfil

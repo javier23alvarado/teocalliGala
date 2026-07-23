@@ -1706,6 +1706,9 @@ body {
    MODAL TAQUILLA GALA (ESTÁTICO - WHATSAPP)
    ==================================================== */
 .gala-modal-overlay {
+  z-index: 10000 !important;
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(8px) !important;
   position: fixed;
   top: 0; left: 0;
   width: 100vw; height: 100vh;
@@ -1932,61 +1935,200 @@ body {
 
 /* Estado de los boletos según feedback */
 .seat-libre {
-  background-color: #ffffff;
-  border: 1px solid #1f2937;
-  color: #1f2937;
+  background-color: #252533 !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  transition: all 0.2s ease;
 }
-
-.seat-reservado {
-  background-color: #9ca3af;
-  border-color: #6b7280;
-  color: white;
-}
-
-.seat-vendido {
-  background-color: #db2777; /* Rosa oscuro/rojo */
-  border-color: #be185d;
-  color: white;
-}
-
-.seat-escenario {
-  background-color: #db2777; /* Rosa oscuro para combinar con tema o gris */
-  color: white;
-  border: none !important;
-  border-radius: 0;
-  cursor: default;
-  pointer-events: none;
-  font-size: 14px;
-  letter-spacing: 2px;
-}
-
-/* Filtros del Mapa */
-.teatro-grid.filter-libres .teatro-seat:not(.seat-empty):not(.seat-libre),
-.teatro-grid.filter-reservados .teatro-seat:not(.seat-empty):not(.seat-reservado),
-.teatro-grid.filter-vendidos .teatro-seat:not(.seat-empty):not(.seat-vendido) {
-  opacity: 0.1;
-  pointer-events: none;
-}
-
-.map-container-wrapper {
-  border: 4px solid var(--primary-color) !important;
-  border-radius: 8px !important;
-  background-color: #fafafa !important;
-}
-
-/* Taquilla Pública */
-.seat-selected {
-  background-color: #db2777 !important; /* Rosa */
-  border-color: #9d174d !important;
+.seat-libre:hover {
+  background-color: rgba(233, 30, 99, 0.2) !important;
+  border-color: #E91E63 !important;
   color: #fff !important;
-  transform: scale(1.1);
-  box-shadow: 0 0 8px rgba(219, 39, 119, 0.6);
+}
+
+.seat-selected {
+  background-color: #E91E63 !important;
+  border-color: #f43f5e !important;
+  color: #fff !important;
+  transform: scale(1.15) !important;
+  box-shadow: 0 0 12px rgba(233, 30, 99, 0.8), inset 0 0 4px rgba(255,255,255,0.4) !important;
   z-index: 2;
 }
+
 .seat-unavailable {
-  background-color: #e5e7eb !important;
-  color: #9ca3af !important;
-  border-color: #d1d5db !important;
+  background-color: #121217 !important;
+  color: rgba(255,255,255,0.1) !important;
+  border-color: transparent !important;
   opacity: 0.5;
   cursor: not-allowed !important;
+}
+
+.btn-gala-gradient {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 16px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: 12px;
+  gap: 10px;
+  color: #fff;
+  background: linear-gradient(135deg, #E91E63 0%, #9c27b0 100%);
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  box-shadow: 0 10px 20px -10px rgba(233, 30, 99, 0.6);
+}
+.btn-gala-gradient:hover:not(.disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 25px -10px rgba(233, 30, 99, 0.8);
+  background: linear-gradient(135deg, #f06292 0%, #ba68c8 100%);
+  color: #fff;
+}
+.btn-gala-gradient.disabled {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.3);
+  box-shadow: none;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.badge-seat {
+  background: rgba(233, 30, 99, 0.2);
+  border: 1px solid rgba(233, 30, 99, 0.5);
+  color: #ff80ab;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Z-Index modal fix */
+#modal-reserva-gala { z-index: 9999 !important; }
+
+/* Escenario redesign in JS creates inline styles, but we can target .badge-seat here */
+.badge-seat {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.badge-seat:hover {
+  background: rgba(233, 30, 99, 0.5);
+  color: #fff;
+  border-color: #E91E63;
+  transform: scale(1.05);
+}
+.map-container-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.map-container-wrapper::-webkit-scrollbar-track {
+  background: #121218;
+}
+.map-container-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(233, 30, 99, 0.4);
+  border-radius: 4px;
+}
+.map-container-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(233, 30, 99, 0.8);
+}
+
+/* FORCED DARK BACKGROUND ON MAP AND SVG */
+.map-container, 
+.seat-map-wrapper,
+#mapa-asientos, 
+#mapa-asientos svg,
+.map-container-wrapper,
+.teatro-grid,
+#public-teatro-map-grid {
+  background-color: transparent !important; /* El wrapper ya tiene el color oscuro, el grid debe ser transparente */
+}
+
+/* Remover rectángulos de fondo inyectados (por si el usuario lo necesita) */
+#mapa-asientos svg rect:first-child,
+#mapa-asientos svg rect[fill="#ffffff"],
+#mapa-asientos svg rect[fill="#FFF"],
+#mapa-asientos svg rect[fill="white"] {
+  fill: transparent !important;
+}
+
+/* ESTILOS DE BUTACAS SOBRE FONDO OSCURO */
+
+/* Asientos Disponibles */
+.teatro-seat.seat-libre,
+#mapa-asientos .seat,
+#mapa-asientos svg g[data-status="available"] rect,
+#mapa-asientos svg rect.available {
+  background-color: #1e1e28 !important;
+  border-color: #3a3a4d !important;
+  color: #fff !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  transition: all 0.2s ease !important;
+  fill: #1e1e28 !important;
+  stroke: #3a3a4d !important;
+  stroke-width: 1px !important;
+}
+
+.teatro-seat.seat-libre:hover,
+#mapa-asientos .seat:hover,
+#mapa-asientos svg g[data-status="available"]:hover rect {
+  background-color: #E91E63 !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+  cursor: pointer !important;
+  filter: drop-shadow(0px 0px 6px #E91E63) !important;
+  fill: #E91E63 !important;
+  stroke: #ffffff !important;
+}
+
+/* Asientos Seleccionados */
+.teatro-seat.seat-selected,
+#mapa-asientos .seat.selected,
+#mapa-asientos svg g[data-status="selected"] rect,
+#mapa-asientos svg rect.selected {
+  background-color: #E91E63 !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+  filter: drop-shadow(0px 0px 8px #E91E63) !important;
+  box-shadow: 0 0 10px #E91E63 !important;
+  fill: #E91E63 !important;
+  stroke: #ffffff !important;
+}
+
+/* Asientos Ocupados */
+.teatro-seat.seat-unavailable,
+#mapa-asientos .seat.occupied,
+#mapa-asientos svg g[data-status="occupied"] rect,
+#mapa-asientos svg rect.occupied {
+  background-color: #121217 !important;
+  border-color: #1c1c24 !important;
+  color: rgba(255,255,255,0.2) !important;
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+  fill: #121217 !important;
+  stroke: #1c1c24 !important;
+}
+
+/* Texto SVG (por si acaso) */
+#mapa-asientos svg text {
+  fill: #ffffff !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  pointer-events: none !important;
+}
+
+/* Ocultar boton whatsapp original si modal esta abierto */
+body:has(#modal-reserva-gala.active) .btn-whatsapp:not(#btn-contact-whatsapp) {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+#modal-reserva-gala {
+  z-index: 10000 !important;
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(8px) !important;
 }
