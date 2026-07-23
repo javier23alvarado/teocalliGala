@@ -45,6 +45,12 @@
             </a>
           </li>
           <li>
+            <a class="sidebar-link" id="btn-misboletos">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+              <span>Mis Boletos Gala</span>
+            </a>
+          </li>
+          <li>
             <a class="sidebar-link" id="btn-perfil">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               <span>Mi Perfil</span>
@@ -592,6 +598,33 @@
     </div>
   </section>
 
+      <!-- NUEVA SECCION: MIS BOLETOS GALA -->
+      <section id="db-section-misboletos" class="db-section">
+        <header style="margin-bottom: 24px;">
+          <h2 class="text-serif" style="margin: 0; font-size: 28px;">Mis Boletos Gala</h2>
+          <p class="text-muted" style="margin-top: 8px;">Gestiona los boletos que tienes asignados para la Gala.</p>
+        </header>
+
+        <div class="card fade-in" style="margin-bottom: 24px;">
+          <h3 class="text-serif" style="margin-bottom: 16px;">Mi Inventario</h3>
+          <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+            <table class="data-table" style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr>
+                  <th style="position: sticky; top: 0; background: var(--bg-card); z-index: 10;">Boleto</th>
+                  <th style="position: sticky; top: 0; background: var(--bg-card); z-index: 10;">Estado Actual</th>
+                  <th style="position: sticky; top: 0; background: var(--bg-card); z-index: 10;">Acción (Cambiar Estado)</th>
+                </tr>
+              </thead>
+              <tbody id="misboletos-table-body">
+                <tr>
+                  <td colspan="3" style="text-align: center; color: var(--text-muted);">Cargando tus boletos...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
     </main>
   </div>

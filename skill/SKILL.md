@@ -99,23 +99,17 @@ window.addEventListener("click", (e) => {
 });
 ```
 
-### 🐛 BUG PENDIENTE: Botón "Asignación Masiva" no abre su modal al primer clic
+### 🎟️ Módulo "Mis Boletos Gala" (Implementado Jul 2026)
 
-**Síntoma**: El modal `#mass-assign-modal` solo aparece después de haber hecho clic en algún botón "Editar" de la tabla. Al primer clic en "Asignación Masiva" desde una página recién cargada, no ocurre nada visible.
+Este módulo permite a cualquier usuario registrado ver el inventario de los boletos que el administrador le ha asignado, y actualizar su estado sin depender de un administrador.
 
-**Causa probable investigada pero no confirmada**:
-- Las variables `btnMassAssign` y `massAssignModal` se capturan con `getElementById` al cargar el módulo. Si el elemento existe en el DOM (aunque el tab padre esté `display:none`), deberían capturarse correctamente.
-- Se descartó: cache del navegador (se forzó recarga), errores de sintaxis JS (node -c pasó), z-index insuficiente.
-- **Hipótesis activa**: Puede que `btnMassAssign` sea `null` en el momento de captura si el DOM aún no tiene el elemento renderizado (problema de timing con el tab oculto), lo que haría que `addEventListener` nunca se registre.
-
-**Próximo paso de diagnóstico**: Abrir DevTools en la página en vivo, ir a la consola y ejecutar:
-```js
-console.log(document.getElementById('btn-mass-assign'));
-console.log(document.getElementById('mass-assign-modal'));
-```
-Si alguno retorna `null`, la causa es que el elemento no existe en el DOM en el momento de ejecución del módulo.
-
-**Solución alternativa a probar**: Envolver el `addEventListener` en un `DOMContentLoaded` o mover la captura de la variable dentro de la función `setupBoletosTabsAndFilters()` en lugar de al inicio del módulo.
+**Características Principales:**
+- **Filtrado Seguro:** La lógica local lee toda la data de Firebase pero solo renderiza en la tabla aquellos nodos en donde `bailarin_id === currentUserProfile.uid`. 
+- **Modificación en Sitio:** No se usan modales. La tabla incorpora un `<select>` que dispara `window.changeMisBoletoState` en el evento `onchange`.
+- **Actualización Inmediata:** Modificar el dropdown ejecuta `updateDoc()` hacia Firestore y despliega un Toast en pantalla.
+- **Renderizado Dinámico:** Para asegurar que los datos se dibujen correctamente, `renderMisBoletosTable()` se invoca:
+  1. En el listener de `onSnapshot` cuando llegan nuevos datos de la base de datos y la sección está activa.
+  2. En el `addEventListener("click")` del botón del tab (en el sidebar), de manera que si se entra por navegación y los datos ya estaban oxidados, se fuerza el re-dibujado.
 
 ---
 

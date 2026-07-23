@@ -52,6 +52,7 @@ const navDbUsers = document.getElementById("btn-users");
 const sidebarOptUsers = document.getElementById("sidebar-opt-users");
 const navDbProfile = document.getElementById("btn-perfil");
 const navDbAgenda = document.getElementById("btn-agenda");
+const navDbMisBoletos = document.getElementById("btn-misboletos");
 const btnMenuToggle = document.getElementById("btn-menu-toggle");
 const sidebar = document.querySelector(".sidebar");
 const profileAvatarSidebar = document.getElementById("profile-avatar-sidebar");
@@ -82,6 +83,7 @@ const tabBtnBoletosTable = document.getElementById("tab-btn-boletos-table");
 const tabContentBoletosMap = document.getElementById("tab-content-boletos-map");
 const tabContentBoletosTable = document.getElementById("tab-content-boletos-table");
 const boletosTableBody = document.getElementById("boletos-table-body");
+const misboletosTableBody = document.getElementById("misboletos-table-body");
 const filterBoletoId = document.getElementById("filter-boleto-id");
 const filterBoletoEstado = document.getElementById("filter-boleto-estado");
 const filterBoletoBailarin = document.getElementById("filter-boleto-bailarin");
@@ -893,6 +895,10 @@ function switchDbSection(sectionName) {
     if (navDbAgenda) navDbAgenda.classList.add("active");
     const dbSectionAgenda = document.getElementById("db-section-agenda");
     if (dbSectionAgenda) dbSectionAgenda.classList.add("active");
+  } else if (sectionName === "misboletos") {
+    if (navDbMisBoletos) navDbMisBoletos.classList.add("active");
+    const dbSectionMisBoletos = document.getElementById("db-section-misboletos");
+    if (dbSectionMisBoletos) dbSectionMisBoletos.classList.add("active");
   }
 }
 
@@ -1276,11 +1282,14 @@ function setupAgendaModule() {
   const btnDeleteEvent = document.getElementById("btn-delete-event");
   
   if (navDbAgenda) {
-    navDbAgenda.addEventListener("click", (e) => {
-      e.preventDefault();
+    navDbAgenda.addEventListener("click", () => {
       switchDbSection("agenda");
-      closeSidebarOnMobile();
-      renderCalendar();
+    });
+  }
+
+  if (navDbMisBoletos) {
+    navDbMisBoletos.addEventListener("click", () => {
+      switchDbSection("misboletos"); renderMisBoletosTable();
     });
   }
 
@@ -2107,6 +2116,9 @@ async function setupBoletosModule() {
       if (tabContentBoletosTable && tabContentBoletosTable.style.display !== 'none') {
         renderBoletosTable();
       }
+      if (document.getElementById("db-section-misboletos")?.classList.contains("active")) {
+        renderMisBoletosTable();
+      }
     }
   });
 
@@ -2436,6 +2448,72 @@ function renderBoletosTable() {
     });
   });
 }
+
+function renderMisBoletosTable() {
+  if (!misboletosTableBody) return;
+  misboletosTableBody.innerHTML = "";
+
+  if (!currentBoletosData || !currentUserProfile || !currentUserProfile.uid) {
+    misboletosTableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">Cargando...</td></tr>`;
+    return;
+  }
+
+  let hasRows = false;
+
+  Object.entries(currentBoletosData).forEach(([seatId, info]) => {
+    const estado = info.estado || "libre";
+    const bailarinId = info.bailarin_id;
+
+    if (bailarinId !== currentUserProfile.uid) return;
+
+    hasRows = true;
+
+    const tr = document.createElement("tr");
+
+    let estadoBadge = `<span class="badge" style="background-color: #10b981; color: white;">Libre</span>`;
+    if (estado === "reservado") estadoBadge = `<span class="badge" style="background-color: #f59e0b; color: white;">Reservado</span>`;
+    if (estado === "vendido") estadoBadge = `<span class="badge" style="background-color: #ef4444; color: white;">Vendido</span>`;
+
+    tr.innerHTML = `
+      <td style="font-weight: bold; text-align: center;">${seatId}</td>
+      <td style="text-align: center;">${estadoBadge}</td>
+      <td style="text-align: center;">
+        <select class="input-field" style="padding: 4px 8px; font-size: 13px; max-width: 120px; display: inline-block;" onchange="window.changeMisBoletoState('${seatId}', this)">
+          <option value="libre" ${estado === 'libre' ? 'selected' : ''}>Libre</option>
+          <option value="reservado" ${estado === 'reservado' ? 'selected' : ''}>Reservado</option>
+          <option value="vendido" ${estado === 'vendido' ? 'selected' : ''}>Vendido</option>
+        </select>
+      </td>
+    `;
+    misboletosTableBody.appendChild(tr);
+  });
+
+  if (!hasRows) {
+    misboletosTableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No tienes boletos asignados actualmente.</td></tr>`;
+  }
+}
+
+window.changeMisBoletoState = async function(seatId, selectElement) {
+  const newState = selectElement.value;
+  selectElement.disabled = true;
+  
+  try {
+    const updateData = {};
+    updateData[`asientos.${seatId}.estado`] = newState;
+    
+    await updateDoc(asientosDbRef, updateData);
+    if(window.showToast) window.showToast(`Asiento ${seatId} actualizado a ${newState}`, "success");
+  } catch (error) {
+    console.error("Error al actualizar estado del boleto:", error);
+    if(window.showToast) window.showToast("Error al actualizar estado: " + error.message, "danger");
+    // Revert select visually
+    const oldState = currentBoletosData[seatId]?.estado || 'libre';
+    selectElement.value = oldState;
+  } finally {
+    selectElement.disabled = false;
+  }
+};
+
 
 function exportBoletosToExcel() {
   if (typeof XLSX === "undefined") {
