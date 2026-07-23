@@ -1973,3 +1973,20 @@ body {
   border-radius: 8px !important;
   background-color: #fafafa !important;
 }
+
+/* Taquilla Pública */
+.seat-selected {
+  background-color: #db2777 !important; /* Rosa */
+  border-color: #9d174d !important;
+  color: #fff !important;
+  transform: scale(1.1);
+  box-shadow: 0 0 8px rgba(219, 39, 119, 0.6);
+  z-index: 2;
+}
+.seat-unavailable {
+  background-color: #e5e7eb !important;
+  color: #9ca3af !important;
+  border-color: #d1d5db !important;
+  opacity: 0.5;
+  cursor: not-allowed !important;
+}

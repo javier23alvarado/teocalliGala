@@ -126,6 +126,16 @@ Se integró un nuevo panel exclusivo para Administradores bajo la sección **"Bo
   * Se agregó soporte para escribir notas o comentarios de clientes por cada asiento (ej. comprador, observaciones).
 * **Bloque de Escenario**: El área de "ESCENARIO" original (que ocupaba múltiples celdas en el CSV) fue optimizada para no ocupar 9 filas fantasma en el HTML. Se consolida en un solo bloque estético en la base, acercando el escenario real a las butacas.
 
+### Taquilla Pública Interactiva (index.html)
+El modal público fue transformado en una taquilla viva e inteligente:
+* **Mapa Compartido en Tiempo Real**: Consume el mismo esquema JSON (mapaGaleriasLayout) y el mismo documento de Firestore (`gala/estadoBoletos`) que el panel administrativo. Los asientos ocupados se bloquean visualmente al instante.
+* **Carrito y Cotización**: Los usuarios pueden hacer clic en butacas libres (resaltadas en rosa corporativo #db2777). El sistema calcula dinámicamente un costo fijo de $400 MXN por boleto, y previene la selección si el estado no es "libre".
+* **Reservas con Auto-Liberación (24 Hrs)**: 
+  * Al dar clic en "Reservar Ahora", los asientos se graban en Firestore con estado **'reservado'**, el campo `reservaUser: 'publico'` y un `reservaDate` con el timestamp exacto (Date.now()).
+  * Inmediatamente abre la API de WhatsApp con un mensaje pre-formateado detallando los asientos (`(A100, A102)`) y el monto.
+  * **Expiración**: Tanto el panel público como el de administración calculan el tiempo transcurrido desde `reservaDate`. Si han pasado **más de 24 horas** y el administrador no los ha transicionado manualmente a "vendido", el asiento vuelve a renderizarse y considerarse como **'libre'** para la venta pública.
+
+
 ## 🖼️ 6. Manejo de Imágenes de Perfil
 
 Para evitar bloqueos de política CORS al subir archivos binarios a Firebase Storage sin configuración preflight en GCS, las fotos de perfil siguen este protocolo de optimización:

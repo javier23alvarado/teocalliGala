@@ -15,6 +15,11 @@ service cloud.firestore {
         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.activo == true;
     }
 
+    match /gala/estadoBoletos {
+      // Permitimos lectura y escritura pública para el mapa interactivo
+      allow read, write: if true;
+    }
+
     match /agenda/{eventId} {
       // Lectura pública para poder mostrar talleres y presentaciones en la landing page
       allow read: if true;
