@@ -13,49 +13,143 @@ This skill provides comprehensive operational guidelines, architectural constrai
 
 1. **Directory Organization Constraint**:
    * All CSS styles MUST be placed in `css/style.css`.
-   * All JavaScript logic files MUST reside in `js/` (e.g. `js/firebase-config.js`, `js/login.js`, `js/compania.js`, `js/public-gala.js`).
+   * All JavaScript logic resides in `js/controllers/companiaController.js` (monolithic SPA controller).
    * Images and visual branding assets MUST be stored under `assets/images/`.
-   * HTML pages (`index.html`, `login.html`, `compania.html`) remain at the workspace root.
-   * `index.html` is the public-facing landing page (currently heavily optimized for the "Gala" event with static modals and WhatsApp redirects).
-   * `compania.html` is the strict, isolated private Dashboard for members.
+   * HTML views are in `views/` (e.g. `views/compania.html`).
+   * `index.html` is the public-facing landing page (Gala event, WhatsApp redirects).
+   * `views/compania.html` is the private Dashboard for members (admin SPA).
 
 2. **Firebase & Cloud Firestore Conventions**:
-   * Always import Firebase SDK v9 modular instances from `./firebase-config.js` when working inside `js/`.
-   * Always ensure `firestore.rules` is updated whenever new Firestore collections or access permissions are introduced.
-   * Maintain the Demo Mode fallback logic (`isDemoMode` checked against placeholder API keys) so the application remains 100% functional offline via `localStorage`.
+   * Always import Firebase SDK v9 modular instances from `js/services/firebaseService.js`.
+   * The seat state document is at: `doc(db, 'gala', 'estadoBoletos')` — structure: `{ asientos: { [seatId]: { estado, bailarin_id, comentario } } }`.
+   * Firestore updates use `updateDoc` with dot-notation paths: `asientos.A1.estado`, `asientos.A1.bailarin_id`, `asientos.A1.comentario`.
+   * All users are stored in `/usuarios` collection with fields: `nombres`, `apellidoPaterno`, `alias`, `activo`, `id_rol`.
 
 3. **Client-Side Image Optimization**:
-   * NEVER upload raw high-resolution binary files directly to GCS Firebase Storage without preflight handling due to CORS constraints.
-   * Convert user avatar uploads to **200x200px Base64 WebP** using an HTML5 Canvas element before saving into the `fotoPerfil` attribute of `/usuarios`.
+   * Convert user avatar uploads to **200x200px Base64 WebP** using an HTML5 Canvas element before saving into `fotoPerfil` of `/usuarios`.
 
 4. **Security & Route Guarding**:
-   * Keep `.dashboard-wrapper` hidden (`display: none;`) by default until `onAuthStateChanged` validates the active session to prevent flickering durante redirect transitions.
-   * **Login and Password Interception**: New accounts are generated with the default password `teocalli2026`. You must intercept this password manually inside the submit handler to force a password change. To prevent `onAuthStateChanged` from prematurely redirecting users during a manual login, use the `isManualLogin` flag to temporarily disable automatic redirects.
+   * Keep `.dashboard-wrapper` hidden (`display: none;`) by default until `onAuthStateChanged` validates the active session.
+   * Default new account password is `teocalli2026`. Force password change on first login.
+
+5. **Deployment**:
+   * After ANY code change, run `firebase deploy --only hosting` from the project root.
+   * The live URL is: `https://teocalli-sabia-de-mi-tierra.web.app`
+   * The script tag uses a version param `?v=X.X` to bust cache — bump it when deploying significant JS changes.
 
 ---
 
-## 🧭 Step-by-Step AI Agent Workflows
+## 🎟️ Módulo de Administración de Boletos Gala (Implementado Jul 2026)
 
-### Scenario 1: Adding a New Feature or Module to the SPA Dashboard (`compania.html` / `js/compania.js`)
-1. **Markup**: Add the navigation button in `compania.html` inside `<ul class="sidebar-menu">` with an ID like `#btn-mynewmodule`. Add a `<section id="db-section-mynewmodule" class="db-section">` in `compania.html`.
-2. **Styles**: Add modern, clean responsive CSS in `css/style.css` following the predefined design tokens (`var(--primary)`, `var(--bg-card)`, `var(--radius-md)`).
-3. **Navigation Logic**: Declare `const navDbMyNewModule = document.getElementById("btn-mynewmodule");` in `js/compania.js`. Update `switchDbSection(sectionName)` to handle `"mynewmodule"`.
-4. **Data Sync**: Implement real-time listeners using `onSnapshot` for Firestore, and provide a `localStorage` fallback branch if `isDemoMode` is active.
+### Qué se implementó
 
-### Scenario 2: Modifying Database Security Rules (`firestore.rules`)
-1. Edit `firestore.rules`.
-2. Ensure roles are validated against `request.auth.uid` looking up `/databases/$(database)/documents/usuarios/$(request.auth.uid)`.
-3. Support both `id_rol` and `rol` field aliases for backward compatibility.
+En `views/compania.html` → sección "Boleto Gala", se agregó un **sistema de dos tabs**:
 
-### Scenario 3: Deploying Changes to Staging / Production
-1. Commit all modified files to Git.
-2. Run `firebase deploy` in the shell or prompt the user to execute it.
+- **Tab 1 – Mapa de Asientos**: Vista visual interactiva con panzoom, coloreado por estado (libre/reservado/vendido).
+- **Tab 2 – Administración de Asientos**: Tabla con filtros, exportación Excel y modales de gestión.
+
+### Componentes clave en el HTML
+
+```html
+<!-- Botón de Asignación Masiva -->
+<button id="btn-mass-assign" ...>Asignación Masiva</button>
+
+<!-- Modal individual por asiento -->
+<div id="boleto-modal" class="modal-overlay" style="display: none;">...</div>
+
+<!-- Modal de asignación masiva -->
+<div id="mass-assign-modal" class="modal-overlay" style="display: none;">
+  <form id="mass-assign-form">
+    <textarea id="mass-assign-input">...</textarea>       <!-- Asientos separados por coma -->
+    <select id="mass-assign-user-select">...</select>     <!-- Usuario a asignar -->
+    <select id="mass-assign-status-select">...</select>   <!-- Estado: libre/reservado/vendido -->
+  </form>
+</div>
+```
+
+### Variables JS declaradas al inicio del módulo (companiaController.js, líneas ~70-100)
+
+```js
+const boletoModal            = document.getElementById("boleto-modal");
+const btnMassAssign          = document.getElementById("btn-mass-assign");
+const massAssignModal        = document.getElementById("mass-assign-modal");
+const btnCloseMassAssignModal= document.getElementById("btn-close-mass-assign-modal");
+const massAssignUserSelect   = document.getElementById("mass-assign-user-select");
+```
+
+### Event Listeners (dentro de `setupBoletosTabsAndFilters()`)
+
+```js
+// Abrir modal de asignación masiva
+if (btnMassAssign && massAssignModal) {
+  btnMassAssign.addEventListener("click", () => {
+    massAssignModal.style.display = "flex";
+  });
+}
+// Cerrar modal masivo
+if (btnCloseMassAssignModal && massAssignModal) {
+  btnCloseMassAssignModal.addEventListener("click", () => {
+    massAssignModal.style.display = "none";
+  });
+}
+// Cerrar al clic fuera del modal
+window.addEventListener("click", (e) => {
+  if (e.target === massAssignModal) massAssignModal.style.display = "none";
+  if (e.target === boletoModal) boletoModal.style.display = "none";
+});
+```
+
+### 🐛 BUG PENDIENTE: Botón "Asignación Masiva" no abre su modal al primer clic
+
+**Síntoma**: El modal `#mass-assign-modal` solo aparece después de haber hecho clic en algún botón "Editar" de la tabla. Al primer clic en "Asignación Masiva" desde una página recién cargada, no ocurre nada visible.
+
+**Causa probable investigada pero no confirmada**:
+- Las variables `btnMassAssign` y `massAssignModal` se capturan con `getElementById` al cargar el módulo. Si el elemento existe en el DOM (aunque el tab padre esté `display:none`), deberían capturarse correctamente.
+- Se descartó: cache del navegador (se forzó recarga), errores de sintaxis JS (node -c pasó), z-index insuficiente.
+- **Hipótesis activa**: Puede que `btnMassAssign` sea `null` en el momento de captura si el DOM aún no tiene el elemento renderizado (problema de timing con el tab oculto), lo que haría que `addEventListener` nunca se registre.
+
+**Próximo paso de diagnóstico**: Abrir DevTools en la página en vivo, ir a la consola y ejecutar:
+```js
+console.log(document.getElementById('btn-mass-assign'));
+console.log(document.getElementById('mass-assign-modal'));
+```
+Si alguno retorna `null`, la causa es que el elemento no existe en el DOM en el momento de ejecución del módulo.
+
+**Solución alternativa a probar**: Envolver el `addEventListener` en un `DOMContentLoaded` o mover la captura de la variable dentro de la función `setupBoletosTabsAndFilters()` en lugar de al inicio del módulo.
 
 ---
 
-## 📄 Reference Files
+## 🧭 Workflows de Agente
 
-* **Master Technical Documentation**: [DOCUMENTATION.md](file:///c:/software/teocalli/DOCUMENTATION.md)
-* **Database Rules**: [firestore.rules](file:///c:/software/teocalli/firestore.rules)
-* **Global Styles**: [style.css](file:///c:/software/teocalli/css/style.css)
-* **Dashboard Logic**: [compania.js](file:///c:/software/teocalli/js/compania.js)
+### Añadir un nuevo módulo al Dashboard SPA
+
+1. **HTML**: Agregar botón en `sidebar-menu` con `id="btn-mynewmodule"` y sección `<section id="db-section-mynewmodule" class="db-section">` en `views/compania.html`.
+2. **CSS**: Añadir estilos en `css/style.css` usando tokens de diseño (`var(--primary)`, `var(--bg-card)`, `var(--radius-md)`).
+3. **JS**: En `companiaController.js`, declarar variable, actualizar `switchDbSection()`, implementar listeners.
+4. **Deploy**: `firebase deploy --only hosting`
+
+### Modificar Reglas de Firestore
+
+1. Editar `firestore.rules`.
+2. Validar roles con `request.auth.uid` contra `/usuarios/$(request.auth.uid)`.
+3. Soportar campos `id_rol` y `rol` por compatibilidad.
+
+### Notificaciones Toast (sistema implementado)
+
+```js
+window.showToast("Mensaje", "success" | "warning" | "danger");
+```
+Aparece en esquina inferior derecha, se auto-oculta a los 4 segundos.
+
+---
+
+## 📄 Archivos Clave
+
+| Archivo | Descripción |
+|---|---|
+| `views/compania.html` | Dashboard SPA completo (HTML + modales) |
+| `js/controllers/companiaController.js` | Toda la lógica del dashboard |
+| `css/style.css` | Estilos globales + tokens de diseño |
+| `js/services/firebaseService.js` | Instancias Firebase (auth, db, storage) |
+| `firestore.rules` | Reglas de seguridad Firestore |
+| `firebase.json` | Configuración de hosting Firebase |

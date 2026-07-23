@@ -8,8 +8,14 @@ service cloud.firestore {
       // El documento raíz del SuperAdmin original siempre es legible/escribible por él mismo si está autenticado
       allow read, write: if request.auth != null && request.auth.uid == "4J5PxGAHnkM1CaNm7L24hkhkD8A2";
 
-      // El Super Administrador (validando su rol en la base de datos) puede leer, crear y actualizar cualquier usuario
-      allow get, list, create, update, delete: if request.auth != null && 
+      // El Administrador y Super Administrador pueden leer el listado de usuarios
+      allow get, list: if request.auth != null && 
+        (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.id_rol in ["super_admin", "admin"] ||
+         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol in ["super_admin", "admin"]) &&
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.activo == true;
+
+      // Solo el Super Administrador puede crear, actualizar o eliminar usuarios
+      allow create, update, delete: if request.auth != null && 
         (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.id_rol == "super_admin" ||
          get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == "super_admin") &&
         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.activo == true;

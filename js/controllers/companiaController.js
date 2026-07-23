@@ -77,6 +77,25 @@ const boletoIdInput = document.getElementById("boleto-id-input");
 const boletoStatusSelect = document.getElementById("boleto-status-select");
 const boletoBailarinGroup = document.getElementById("boleto-bailarin-group");
 const boletoBailarinSelect = document.getElementById("boleto-bailarin-select");
+const tabBtnBoletosMap = document.getElementById("tab-btn-boletos-map");
+const tabBtnBoletosTable = document.getElementById("tab-btn-boletos-table");
+const tabContentBoletosMap = document.getElementById("tab-content-boletos-map");
+const tabContentBoletosTable = document.getElementById("tab-content-boletos-table");
+const boletosTableBody = document.getElementById("boletos-table-body");
+const filterBoletoId = document.getElementById("filter-boleto-id");
+const filterBoletoEstado = document.getElementById("filter-boleto-estado");
+const filterBoletoBailarin = document.getElementById("filter-boleto-bailarin");
+const btnExportBoletos = document.getElementById("btn-export-boletos");
+let currentBoletosData = {}; // Cache for table filtering
+
+// Mass Assign Modal
+const btnMassAssign = document.getElementById("btn-mass-assign");
+const massAssignModal = document.getElementById("mass-assign-modal");
+const btnCloseMassAssignModal = document.getElementById("btn-close-mass-assign-modal");
+const massAssignForm = document.getElementById("mass-assign-form");
+const massAssignInput = document.getElementById("mass-assign-input");
+const massAssignUserSelect = document.getElementById("mass-assign-user-select");
+const massAssignStatusSelect = document.getElementById("mass-assign-status-select");
 
 // Métricas
 const metricTotalDancers = document.getElementById("metric-total-dancers");
@@ -2074,6 +2093,7 @@ async function setupBoletosModule() {
   }
 
   populateBailarinesSelect();
+  setupBoletosTabsAndFilters();
   
   asientosDbRef = doc(db, 'gala', 'estadoBoletos');
   unsubscribeBoletos = onSnapshot(asientosDbRef, (docSnap) => {
@@ -2082,7 +2102,11 @@ async function setupBoletosModule() {
     } else {
       if(btnInitMap) btnInitMap.style.display = 'none';
       const data = docSnap.data().asientos || {};
+      currentBoletosData = data;
       updateMapUI(data);
+      if (tabContentBoletosTable && tabContentBoletosTable.style.display !== 'none') {
+        renderBoletosTable();
+      }
     }
   });
 
@@ -2119,12 +2143,9 @@ async function setupBoletosModule() {
   }
   
   if (boletoStatusSelect) {
+    // Ya no ocultamos el grupo de selección de usuario basado en el estado
     boletoStatusSelect.addEventListener('change', (e) => {
-      if (e.target.value === 'reservado' || e.target.value === 'vendido') {
-        boletoBailarinGroup.style.display = 'block';
-      } else {
-        boletoBailarinGroup.style.display = 'none';
-      }
+      // boletoBailarinGroup.style.display = 'block'; (siempre visible por CSS)
     });
   }
 
@@ -2133,7 +2154,7 @@ async function setupBoletosModule() {
       e.preventDefault();
       const seatId = boletoIdInput.value;
       const status = boletoStatusSelect.value;
-      const bailarin = (status === 'libre') ? null : boletoBailarinSelect.value;
+      const bailarin = boletoBailarinSelect.value || null;
       const comentario = document.getElementById('boleto-comentario') ? document.getElementById('boleto-comentario').value : '';
       
       try {
@@ -2143,10 +2164,10 @@ async function setupBoletosModule() {
           [`asientos.${seatId}.comentario`]: comentario
         });
         if (boletoModal) boletoModal.style.display = 'none';
-        showAlert(`Boleto ${seatId} actualizado a ${status}.`, 'success');
+        window.showToast(`Boleto ${seatId} actualizado a ${status}.`, 'success');
       } catch(error) {
         console.error(error);
-        showAlert('Error al guardar: ' + error.message, 'danger');
+        window.showToast('Error al guardar: ' + error.message, 'danger');
       }
     });
   }
@@ -2244,9 +2265,8 @@ function openBoletoModal(seatId) {
     boletoStatusSelect.value = 'libre';
   }
   
-  if (boletoStatusSelect.value === 'libre') {
-    boletoBailarinGroup.style.display = 'none';
-  } else {
+  // El grupo de usuario asignado siempre está visible ahora
+  if (boletoBailarinGroup) {
     boletoBailarinGroup.style.display = 'block';
   }
   
@@ -2281,8 +2301,344 @@ async function populateBailarinesSelect() {
       opt.value = d.id;
       opt.textContent = `${u.nombres} ${u.apellidoPaterno} (${u.alias || 'Sin alias'})`;
       boletoBailarinSelect.appendChild(opt);
+      
+      if (filterBoletoBailarin) {
+        const optFilter = opt.cloneNode(true);
+        filterBoletoBailarin.appendChild(optFilter);
+      }
+      
+      if (typeof massAssignUserSelect !== 'undefined' && massAssignUserSelect) {
+        const optMass = opt.cloneNode(true);
+        massAssignUserSelect.appendChild(optMass);
+      }
+      
+      // Aseguramos que currentUsersData tenga los usuarios para el mapeo
+      if (!currentUsersData.find(user => user.id === d.id)) {
+        currentUsersData.push({ id: d.id, ...u });
+      }
     });
   } catch(error) {
     console.error('Error al poblar lista de bailarines', error);
   }
 }
+
+// ====================================================
+// BOLETOS TABLA Y FILTROS
+// ====================================================
+function setupBoletosTabsAndFilters() {
+  if (tabBtnBoletosMap) {
+    tabBtnBoletosMap.addEventListener("click", () => {
+      tabBtnBoletosMap.classList.add("active");
+      if (tabBtnBoletosTable) tabBtnBoletosTable.classList.remove("active");
+      if (tabContentBoletosMap) tabContentBoletosMap.style.display = "block";
+      if (tabContentBoletosTable) tabContentBoletosTable.style.display = "none";
+    });
+  }
+
+  if (tabBtnBoletosTable) {
+    tabBtnBoletosTable.addEventListener("click", () => {
+      tabBtnBoletosTable.classList.add("active");
+      if (tabBtnBoletosMap) tabBtnBoletosMap.classList.remove("active");
+      if (tabContentBoletosTable) tabContentBoletosTable.style.display = "block";
+      if (tabContentBoletosMap) tabContentBoletosMap.style.display = "none";
+      renderBoletosTable();
+    });
+  }
+  
+  if (filterBoletoId) filterBoletoId.addEventListener("input", renderBoletosTable);
+  if (filterBoletoEstado) filterBoletoEstado.addEventListener("change", renderBoletosTable);
+  if (filterBoletoBailarin) filterBoletoBailarin.addEventListener("change", renderBoletosTable);
+
+  if (btnExportBoletos) {
+    btnExportBoletos.addEventListener("click", exportBoletosToExcel);
+  }
+
+  // Asignación Masiva: listener directo sobre el elemento
+  if (btnMassAssign && massAssignModal) {
+    btnMassAssign.addEventListener("click", () => {
+      massAssignModal.style.display = "flex";
+    });
+  }
+
+  if (btnCloseMassAssignModal && massAssignModal) {
+    btnCloseMassAssignModal.addEventListener("click", () => {
+      massAssignModal.style.display = "none";
+    });
+  }
+
+  // Cierre al hacer clic fuera del contenido del modal
+  window.addEventListener("click", (e) => {
+    if (e.target === massAssignModal) {
+      massAssignModal.style.display = "none";
+    }
+    if (e.target === boletoModal) {
+      boletoModal.style.display = "none";
+    }
+  });
+}
+
+function renderBoletosTable() {
+  if (!boletosTableBody) return;
+  boletosTableBody.innerHTML = "";
+
+  const searchText = filterBoletoId ? filterBoletoId.value.toLowerCase().trim() : "";
+  const filterEstado = filterBoletoEstado ? filterBoletoEstado.value : "todos";
+  const filterBailarin = filterBoletoBailarin ? filterBoletoBailarin.value : "todos";
+
+  const userMap = {};
+  currentUsersData.forEach(u => {
+    userMap[u.id] = (u.nombres || "") + " " + (u.apellidoPaterno || "");
+  });
+
+  let hasRows = false;
+  
+  if (!currentBoletosData) return;
+
+  Object.entries(currentBoletosData).forEach(([seatId, info]) => {
+    const estado = info.estado || "libre";
+    const bailarinId = info.bailarin_id;
+    const bailarinName = bailarinId && userMap[bailarinId] ? userMap[bailarinId] : (bailarinId || "N/A");
+    const comentario = info.comentario || "";
+
+    if (searchText && !seatId.toLowerCase().includes(searchText)) return;
+    if (filterEstado !== "todos" && estado !== filterEstado) return;
+    if (filterBailarin !== "todos" && bailarinId !== filterBailarin) return;
+
+    hasRows = true;
+
+    const tr = document.createElement("tr");
+
+    let estadoBadge = `<span class="badge" style="background-color: #10b981; color: white;">Libre</span>`;
+    if (estado === "reservado") estadoBadge = `<span class="badge" style="background-color: #f59e0b; color: white;">Reservado</span>`;
+    if (estado === "vendido") estadoBadge = `<span class="badge" style="background-color: #ef4444; color: white;">Vendido</span>`;
+
+    tr.innerHTML = `
+      <td style="font-weight: bold; text-align: center;">${seatId}</td>
+      <td style="text-align: center;">${estadoBadge}</td>
+      <td style="text-align: center;">${estado === 'libre' && (!bailarinId || bailarinId === 'todos') ? '<span style="color:var(--text-muted)">-</span>' : bailarinName}</td>
+      <td><small style="color:var(--text-muted)">${comentario}</small></td>
+      <td style="text-align: center;">
+        <button class="btn btn-secondary btn-sm btn-edit-seat" data-seat="${seatId}" style="padding: 4px 8px; font-size: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); cursor: pointer; background: transparent; color: var(--text-main);">Editar</button>
+      </td>
+    `;
+    boletosTableBody.appendChild(tr);
+  });
+
+  if (!hasRows) {
+    boletosTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No hay asientos que coincidan con los filtros.</td></tr>`;
+  }
+
+  // Bind edit buttons
+  document.querySelectorAll('.btn-edit-seat').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const seatId = e.currentTarget.getAttribute('data-seat');
+      openBoletoModal(seatId);
+    });
+  });
+}
+
+function exportBoletosToExcel() {
+  if (typeof XLSX === "undefined") {
+    showAlert("La librería de exportación aún está cargando o no se encuentra disponible. Comprueba tu conexión.", "danger");
+    return;
+  }
+
+  const userMap = {};
+  currentUsersData.forEach(u => {
+    userMap[u.id] = (u.nombres || "") + " " + (u.apellidoPaterno || "");
+  });
+
+  const dataToExport = [];
+  const searchText = filterBoletoId ? filterBoletoId.value.toLowerCase().trim() : "";
+  const filterEstado = filterBoletoEstado ? filterBoletoEstado.value : "todos";
+  const filterBailarin = filterBoletoBailarin ? filterBoletoBailarin.value : "todos";
+
+  Object.entries(currentBoletosData).forEach(([seatId, info]) => {
+    const estado = info.estado || "libre";
+    const bailarinId = info.bailarin_id;
+    const bailarinName = bailarinId && userMap[bailarinId] ? userMap[bailarinId] : (bailarinId || "");
+    const comentario = info.comentario || "";
+
+    if (searchText && !seatId.toLowerCase().includes(searchText)) return;
+    if (filterEstado !== "todos" && estado !== filterEstado) return;
+    if (filterBailarin !== "todos" && bailarinId !== filterBailarin) return;
+
+    dataToExport.push({
+      "Asiento": seatId,
+      "Estado": estado.toUpperCase(),
+      "Usuario Asignado": estado === 'libre' && !bailarinName ? '-' : bailarinName,
+      "Comentarios": comentario
+    });
+  });
+
+  if (dataToExport.length === 0) {
+    showAlert("No hay datos para exportar con los filtros actuales.", "warning");
+    return;
+  }
+
+  const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Asientos");
+  
+  XLSX.writeFile(workbook, "Boletos_Teocalli_Gala.xlsx");
+}
+
+// Mass Assign Logic (Event Delegation global absoluto)
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#btn-mass-assign")) {
+    const modal = document.getElementById("mass-assign-modal");
+    if (modal) {
+      const input = document.getElementById("mass-assign-input");
+      const userSel = document.getElementById("mass-assign-user-select");
+      const statusSel = document.getElementById("mass-assign-status-select");
+      if (input) input.value = "";
+      if (userSel) {
+        userSel.innerHTML = '<option value="">(Ninguno)</option>';
+        currentUsersData.forEach(u => {
+          const opt = document.createElement("option");
+          opt.value = u.uid || u.id; // Soporta ambos campos para mayor seguridad
+          opt.textContent = (u.nombres || "") + " " + (u.apellidoPaterno || "");
+          userSel.appendChild(opt);
+        });
+      }
+      if (statusSel) statusSel.value = "libre"; // Default a libre
+      modal.style.display = "flex";
+    } else {
+      console.error("Modal de asignación masiva no encontrado en el DOM");
+      alert("Error interno: Modal no encontrado.");
+    }
+  }
+});
+
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#btn-close-mass-assign-modal")) {
+    const modal = document.getElementById("mass-assign-modal");
+    if (modal) modal.style.display = "none";
+  }
+});
+
+document.addEventListener("submit", async (e) => {
+  if (e.target && e.target.id === "mass-assign-form") {
+    e.preventDefault();
+    
+    const input = document.getElementById("mass-assign-input");
+    const userSel = document.getElementById("mass-assign-user-select");
+    const statusSel = document.getElementById("mass-assign-status-select");
+    const modal = document.getElementById("mass-assign-modal");
+    
+    const seatsStr = input ? input.value : "";
+    const userId = userSel ? userSel.value : "";
+    const status = statusSel ? statusSel.value : "libre";
+    
+    if (!seatsStr.trim()) {
+      if(window.showToast) window.showToast("Ingresa los asientos.", "warning");
+      return;
+    }
+    
+    if (status !== "libre" && !userId) {
+      if(window.showToast) window.showToast("Selecciona un usuario para asientos reservados o vendidos.", "warning");
+      return;
+    }
+    
+    const seatsArr = seatsStr.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
+    const invalidFormat = seatsArr.some(s => !/^[A-Z0-9]+$/.test(s));
+    
+    if (invalidFormat) {
+      if(window.showToast) window.showToast("Formato inválido. Ingresa solo letras y números separados por coma.", "danger");
+      return;
+    }
+    
+    // Validar que existen
+    let currentBoletosData = {};
+    if(window.currentBoletosData) currentBoletosData = window.currentBoletosData; // Asegurarse de tener acceso a currentBoletosData (aunque sea global en este archivo)
+    
+    // Como currentBoletosData está encapsulado, lo dejaremos que acceda al scope donde fue declarado si es posible. 
+    // Wait, si lo muevo acá, currentBoletosData y updateDoc y asientosDbRef puede que no estén en scope!
+    // ¡Ah! let currentBoletosData está arriba en el scope del módulo. Así que está bien.
+    
+    const nonExistent = seatsArr.filter(s => !currentBoletosData[s]);
+    if (nonExistent.length > 0) {
+      if(window.showToast) window.showToast(`Asientos inválidos o no existen: ${nonExistent.join(', ')}`, "danger");
+      return;
+    }
+    
+    try {
+      const updateData = {};
+      seatsArr.forEach(seat => {
+        updateData[`asientos.${seat}.estado`] = status;
+        updateData[`asientos.${seat}.bailarin_id`] = userId || null;
+        updateData[`asientos.${seat}.comentario`] = ""; 
+      });
+      
+      await updateDoc(asientosDbRef, updateData);
+      if (modal) modal.style.display = "none";
+      if(window.showToast) window.showToast(`${seatsArr.length} asiento(s) actualizado(s) masivamente.`, "success");
+    } catch (error) {
+      console.error("Error mass assign:", error);
+      if(window.showToast) window.showToast("Error en asignación masiva: " + error.message, "danger");
+    }
+  }
+});
+
+window.showToast = function(message, type = 'success') {
+  let toast = document.getElementById('custom-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'custom-toast';
+    document.body.appendChild(toast);
+    
+    const style = document.createElement('style');
+    style.innerHTML = `
+      #custom-toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 100000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .toast-msg {
+        min-width: 250px;
+        background: #fff;
+        color: #333;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        transform: translateX(150%);
+        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: inherit;
+        font-weight: 500;
+      }
+      .toast-msg.show {
+        transform: translateX(0);
+      }
+      .toast-success { border-left: 5px solid #10b981; }
+      .toast-danger { border-left: 5px solid #ef4444; }
+      .toast-warning { border-left: 5px solid #f59e0b; }
+      .toast-icon { font-size: 20px; }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  const toastEl = document.createElement('div');
+  toastEl.className = `toast-msg toast-${type}`;
+  
+  let icon = '✨';
+  if (type === 'danger') icon = '❌';
+  if (type === 'warning') icon = '⚠️';
+  if (type === 'success') icon = '✅';
+  
+  toastEl.innerHTML = `<span class="toast-icon">${icon}</span> <span>${message}</span>`;
+  toast.appendChild(toastEl);
+  
+  setTimeout(() => toastEl.classList.add('show'), 10);
+  
+  setTimeout(() => {
+    toastEl.classList.remove('show');
+    setTimeout(() => toastEl.remove(), 400);
+  }, 4000);
+};
