@@ -51,11 +51,18 @@
   scroll-behavior: smooth;
 }
 
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   background-color: var(--bg-site);
   color: var(--text-main);
   line-height: 1.6;
-  overflow-x: hidden;
 }
 
 /* Clases de Utilidad */
@@ -1567,6 +1574,7 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  width: 100%;
 }
 
 .gala-minimal-grid {
@@ -1671,8 +1679,8 @@ body {
   .gala-minimal-visual {
     justify-content: center;
     width: 100%;
-    padding: 0 1rem;
-    box-sizing: border-box;
+    padding: 0;
+    margin: 0 auto;
   }
   
   .gala-minimal-poster {
@@ -2131,4 +2139,95 @@ body:has(#modal-reserva-gala.active) .btn-whatsapp:not(#btn-contact-whatsapp) {
   z-index: 10000 !important;
   background: rgba(0, 0, 0, 0.85) !important;
   backdrop-filter: blur(8px) !important;
+}
+
+/* Map UI Controls & Zones Overlay */
+.map-controls button:hover {
+  background-color: #E91E63 !important;
+  transform: scale(1.05);
+}
+.map-controls button:active {
+  transform: scale(0.95);
+}
+
+.teatro-zone {
+  position: absolute;
+  border-radius: 8px;
+  background: rgba(30, 30, 40, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: bold;
+  font-size: 14px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(2px);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+.teatro-zone:hover {
+  background: rgba(233, 30, 99, 0.4);
+  border-color: #E91E63;
+  box-shadow: 0 0 15px rgba(233, 30, 99, 0.5);
+  transform: scale(1.02);
+  z-index: 10;
+}
+
+/* FIX LAYOUT MODAL RESERVA GALA */
+#modal-reserva-gala .gala-modal-content {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 90% !important;
+  max-width: 650px !important;
+  margin: 20px auto !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+  grid-template-columns: none !important; /* Desactiva cualquier grid de 2 columnas */
+}
+
+#modal-reserva-gala .gala-modal-body,
+#modal-reserva-gala .gala-modal-footer,
+#modal-reserva-gala .gala-map-section {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* OPTIMIZACION MOVIL MODAL RESERVA GALA */
+@media (max-width: 600px) {
+  #modal-reserva-gala .gala-modal-content {
+    width: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    padding: 15px 15px 120px 15px !important;
+  }
+  
+  #modal-reserva-gala .gala-modal-content > * {
+    flex-shrink: 0 !important;
+  }
+  
+  #modal-reserva-gala .gala-modal-header {
+    margin-bottom: 10px !important;
+    padding-bottom: 10px !important;
+  }
+  
+  #modal-reserva-gala .gala-price-badge {
+    margin-bottom: 15px !important;
+    padding: 8px 15px !important;
+  }
+  
+  #public-map-wrapper {
+    max-height: 300px !important;
+    min-height: 280px !important;
+  }
+  
+  #modal-reserva-gala .gala-modal-footer {
+    padding-top: 15px !important;
+    gap: 15px !important;
+  }
 }
