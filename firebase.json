@@ -22,7 +22,7 @@
     },
     {
       "site": "teocalli-sabia-de-mi-tierra",
-      "public": ".",
+      "public": "empty-public",
       "redirects": [
         {
           "source": "/:path*",
