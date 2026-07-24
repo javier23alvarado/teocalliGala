@@ -305,7 +305,8 @@
   
                   <div class="form-group">
                     <label class="form-label" for="reg-phone">Número de Celular</label>
-                    <input type="tel" id="reg-phone" class="form-input" required placeholder="3312345678" pattern="[0-9]{10}">
+                    <input type="tel" id="reg-phone" class="form-input" required placeholder="3312345678" pattern="[0-9]{10}" minlength="10" maxlength="10">
+                    <small style="color: var(--text-muted); font-size: 0.8rem; margin-top: 4px; display: block;">Ingresa 10 dígitos continuos sin espacios.</small>
                   </div>
   
                   <div class="form-row-2" style="align-items: center; padding: 10px 0;">

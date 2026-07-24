@@ -848,7 +848,33 @@ function setupSuperAdminCRUD() {
   if (filterAge) filterAge.addEventListener("change", filterAndRender);
 
   // Configurar envío del formulario de registro (Crear/Editar)
-  if (newUserForm) newUserForm.addEventListener("submit", handleFormSubmit);
+  if (newUserForm) {
+    newUserForm.addEventListener("submit", handleFormSubmit);
+    
+    // Auto-formato: Capitalizar nombres (Title Case)
+    const capitalizeWords = (str) => str.replace(/\b\w/g, l => l.toUpperCase());
+    [regNombresInput, regPaternoInput, regMaternoInput].forEach(input => {
+      if (input) {
+        input.addEventListener("input", function(e) {
+          this.value = capitalizeWords(this.value);
+        });
+      }
+    });
+
+    // Auto-formato: Limpiar celular (solo números, max 10)
+    if (regPhoneInput) {
+      regPhoneInput.addEventListener("input", function(e) {
+        this.value = this.value.replace(/\D/g, '').substring(0, 10);
+      });
+    }
+
+    // Auto-formato: Normalizar correo en onblur
+    if (regEmailInput) {
+      regEmailInput.addEventListener("blur", function(e) {
+        this.value = this.value.trim().toLowerCase();
+      });
+    }
+  }
 
   // Configurar botón cancelar edición
   if (btnCancelEdit) btnCancelEdit.addEventListener("click", resetFormState);
@@ -999,6 +1025,19 @@ async function handleFormSubmit(e) {
   const role = regRoleSelect.value;
   const active = regStatusInput.checked;
   const sexo = regSexoSelect ? regSexoSelect.value : "";
+
+  // Validaciones estrictas manuales
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showAlert("Por favor, ingresa un correo electrónico válido.", "warning");
+    return;
+  }
+
+  const phoneRegex = /^[0-9]{10}$/;
+  if (!phoneRegex.test(phone)) {
+    showAlert("El número de celular debe contener exactamente 10 dígitos numéricos sin espacios.", "warning");
+    return;
+  }
 
   showLoading(true);
 
