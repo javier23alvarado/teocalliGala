@@ -1,22 +1,35 @@
 {
-  "hosting": {
-    "site": "teocalli-savia-de-mi-tierra",
-    "public": ".",
-    "cleanUrls": true,
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/login",
-        "destination": "/views/login.html"
-      },
-      {
-        "source": "/compania",
-        "destination": "/views/compania.html"
-      }
-    ]
-  }
+  "hosting": [
+    {
+      "site": "teocalli-savia-de-mi-tierra",
+      "public": ".",
+      "cleanUrls": true,
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/login",
+          "destination": "/views/login.html"
+        },
+        {
+          "source": "/compania",
+          "destination": "/views/compania.html"
+        }
+      ]
+    },
+    {
+      "site": "teocalli-sabia-de-mi-tierra",
+      "public": ".",
+      "redirects": [
+        {
+          "source": "/:path*",
+          "destination": "https://teocalli-savia-de-mi-tierra.web.app/:path",
+          "type": 301
+        }
+      ]
+    }
+  ]
 }
