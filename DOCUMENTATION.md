@@ -175,5 +175,10 @@ python -m http.server 8000
 ### Despliegue en Firebase Hosting
 ```bash
 firebase login
-firebase deploy
+firebase deploy --only hosting
 ```
+
+### Configuración Multi-Sitio y Redireccionamiento (Savia vs Sabia)
+El proyecto cuenta con dos sitios de Hosting dentro del mismo proyecto Firebase (`teocalli-sabia-de-mi-tierra`):
+1. **teocalli-savia-de-mi-tierra** (Sitio principal): Donde se sirve toda la aplicación y los archivos estáticos.
+2. **teocalli-sabia-de-mi-tierra** (Sitio legacy): Funciona exclusivamente como un **Redirect 301**. Su carpeta pública es `empty-public` (una carpeta vacía) para garantizar que Firebase no sirva archivos estáticos y aplique la regla de redirección global definida en `firebase.json` hacia el sitio principal (`savia`).
