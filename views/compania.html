@@ -6,7 +6,7 @@
   <title>Panel de Control | Compañía Teocalli</title>
   <meta name="description" content="Dashboard privado de gestión para miembros de la Compañía Teocalli.">
   <!-- CSS Principal -->
-  <link rel="stylesheet" href="../css/style.css?v=2.7">
+  <link rel="stylesheet" href="../css/style.css?v=2.9">
   <link rel="stylesheet" href="../css/fonts.css">
   <!-- Exportación a Excel (SheetJS) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -495,7 +495,7 @@
     </div>
     
     <!-- Pestañas de Boletos -->
-    <div style="display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 24px; padding-bottom: 2px;">
+    <div style="display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 24px; padding-bottom: 2px;">
       <button id="tab-btn-boletos-map" class="btn tab-btn active" style="background: transparent; border: none; padding: 10px 20px; font-weight: 600; font-size: 15px; cursor: pointer; color: var(--text-muted); border-bottom: 3px solid transparent; border-radius: 0; box-shadow: none;">Mapa del Teatro</button>
       <button id="tab-btn-boletos-table" class="btn tab-btn" style="background: transparent; border: none; padding: 10px 20px; font-weight: 600; font-size: 15px; cursor: pointer; color: var(--text-muted); border-bottom: 3px solid transparent; border-radius: 0; box-shadow: none;">Administración de Asientos</button>
     </div>
@@ -506,7 +506,7 @@
       <!-- PESTAÑA 1: MAPA -->
       <div id="tab-content-boletos-map" class="tab-pane active">
         <!-- Leyenda y Estadísticas -->
-        <div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+        <div class="metrics-grid" style="margin-bottom: 24px;">
           <div class="metric-card" style="border-left: 4px solid #10b981;">
             <h4 style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Libres</h4>
             <p class="metric-value" id="count-libres" style="color: #10b981;">0</p>
@@ -522,7 +522,7 @@
         </div>
 
         <!-- Contenedor del Mapa -->
-        <div class="map-container-wrapper" style="width: 100%; height: calc(100vh - 250px); overflow: hidden; background-color: var(--bg-card); border-radius: var(--radius-md); padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid var(--border-color); cursor: grab; position: relative;">
+        <div class="map-container-wrapper" style="width: 100%; height: calc(100vh - 250px); min-height: 400px; overflow: hidden; background-color: var(--bg-card); border-radius: var(--radius-md); padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid var(--border-color); cursor: grab; position: relative;">
           <div id="teatro-map-grid" class="teatro-grid" style="transform-origin: 0 0; margin: 0; padding: 0;">
             <!-- El CSS Grid se inyectará aquí desde JS -->
             <p style="text-align: center; color: var(--text-muted); padding: 40px; width: 100%;">Cargando mapa interactivo...</p>
@@ -559,7 +559,7 @@
               </div>
             </div>
             
-            <div style="display: flex; gap: 8px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
               <button id="btn-mass-assign" class="btn btn-secondary" style="padding: 8px 16px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                 Asignación Masiva

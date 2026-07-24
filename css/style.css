@@ -658,6 +658,9 @@ body {
   margin-left: 280px;
   padding: 40px;
   background-color: var(--bg-site);
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .dashboard-header {
@@ -753,6 +756,8 @@ body {
   padding: 32px;
   box-shadow: var(--shadow-sm);
   margin-bottom: 24px;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .panel-card-title {
@@ -771,6 +776,8 @@ body {
   overflow-x: auto;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
+  width: 100%;
+  max-width: 100%;
 }
 
 .data-table {

@@ -136,7 +136,9 @@ El modal público fue transformado en una taquilla viva, inteligente y de diseñ
   * Al dar clic en "Reservar por WhatsApp", los asientos se graban en Firestore con estado **'reservado'**, el campo `reservaUser: 'publico'` y un `reservaDate` con el timestamp exacto (Date.now()).
   * Inmediatamente abre la API de WhatsApp con un mensaje pre-formateado detallando los asientos (`(A100, A102)`) y el monto.
   * **Expiración**: Si han pasado **más de 24 horas** y el administrador no los ha transicionado manualmente a "vendido", el asiento vuelve a renderizarse y considerarse como **'libre'** para la venta pública.
-* **Optimización Mobile y Resiliencia UI**: Se implementó un layout responsivo estricto (padding de seguridad para el tab bar de iOS/Android y `flex-shrink: 0`) para evitar que el navegador oculte botones vitales como el de WhatsApp. Se implementó una regla global anti-desplazamiento horizontal (`overflow-x: hidden`) para asegurar que el viewport se mantenga 100% centrado.
+* **Optimización Mobile y Resiliencia UI**: 
+  * Se implementó un layout responsivo estricto para el modal público (padding de seguridad para el tab bar de iOS/Android y `flex-shrink: 0`) para evitar que el navegador oculte botones vitales como el de WhatsApp. Se implementó una regla global anti-desplazamiento horizontal (`overflow-x: hidden`) para asegurar que el viewport se mantenga 100% centrado.
+  * **Dashboard Privado Blindado**: El contenedor maestro (`.main-content`) está protegido con `min-width: 0` y `max-width: 100%` para impedir el desbordamiento flexbox generado por elementos interiores muy anchos (como tablas o mapas). El mapa interactivo garantiza una altura mínima para no colapsar, y las métricas, pestañas y botones adoptan propiedades 100% fluidas (`flex-wrap: wrap`) y tablas con scroll lateral interior (`overflow-x: auto`), asegurando usabilidad premium en celulares.
 
 ## 🖼️ 6. Manejo de Imágenes de Perfil
 
