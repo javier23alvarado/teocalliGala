@@ -1,5 +1,5 @@
 // Firebase Auth & Firestore v9.23.0 modular CDN Imports
-import { auth, db, storage, firebaseConfig } from "../services/firebaseService.js";
+import { auth, db, storage, firebaseConfig, RESERVATION_EXPIRATION_MINUTES } from "../services/firebaseService.js";
 
 import { 
   onAuthStateChanged, 
@@ -1280,10 +1280,27 @@ async function handleDeleteUser(uid) {
       const userRef = doc(db, "usuarios", uid);
       await deleteDoc(userRef);
       
+      // Limpiar los boletos asignados a este usuario
+      let boletosUpdates = {};
+      let hasBoletosUpdates = false;
+      if (typeof currentBoletosData !== 'undefined' && currentBoletosData) {
+        Object.entries(currentBoletosData).forEach(([seatId, info]) => {
+          if (info.bailarin_id === uid) {
+            boletosUpdates[`asientos.${seatId}.estado`] = 'libre';
+            boletosUpdates[`asientos.${seatId}.bailarin_id`] = null;
+            boletosUpdates[`asientos.${seatId}.comentario`] = '';
+            hasBoletosUpdates = true;
+          }
+        });
+      }
+      if (hasBoletosUpdates) {
+        await updateDoc(doc(db, 'gala', 'estadoBoletos'), boletosUpdates);
+      }
+      
       if (regUidInput && regUidInput.value === uid) resetFormState();
       
       showLoading(false);
-      showAlert("Miembro eliminado exitosamente de Firestore.", "success");
+      showAlert("Miembro eliminado exitosamente de Firestore y sus boletos fueron liberados.", "success");
     } catch (error) {
       showLoading(false);
       console.error("Error al eliminar usuario de Firestore:", error);
@@ -2150,6 +2167,18 @@ async function setupBoletosModule() {
     } else {
       if(btnInitMap) btnInitMap.style.display = 'none';
       const data = docSnap.data().asientos || {};
+      
+      // Simular liberación local por tiempo
+      const now = Date.now();
+      Object.keys(data).forEach(seatId => {
+        if (data[seatId].estado === 'reservado' && data[seatId].reservaDate) {
+          const diffMinutes = (now - data[seatId].reservaDate) / (1000 * 60);
+          if (diffMinutes > RESERVATION_EXPIRATION_MINUTES) {
+            data[seatId].estado = 'libre';
+          }
+        }
+      });
+      
       currentBoletosData = data;
       updateMapUI(data);
       if (tabContentBoletosTable && tabContentBoletosTable.style.display !== 'none') {

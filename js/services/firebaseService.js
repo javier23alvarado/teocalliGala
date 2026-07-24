@@ -24,3 +24,7 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app, "gs://teocalli-sabia-de-mi-tierra.appspot.com");
 export { firebaseConfig };
+
+// Configuración de negocio (modificable para pruebas)
+export const RESERVATION_EXPIRATION_MINUTES = 10;
+

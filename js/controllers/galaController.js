@@ -1,6 +1,6 @@
 // public-gala.js - Lógica interactiva para la Taquilla Gala Pública (Versión Simplificada General)
 
-import { db } from "../services/firebaseService.js";
+import { db, RESERVATION_EXPIRATION_MINUTES } from "../services/firebaseService.js";
 import { doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 const btnObtenerAcceso = document.getElementById("btn-obtener-acceso");
@@ -187,10 +187,10 @@ function updateSeatsUI() {
     if (allSeatsState[seatId]) {
       state = allSeatsState[seatId].estado;
       
-      // Auto-liberar si está reservado y pasaron más de 24 hrs
+      // Auto-liberar si está reservado y pasaron más del límite en minutos
       if (state === 'reservado' && allSeatsState[seatId].reservaDate) {
-        const diffHours = (now - allSeatsState[seatId].reservaDate) / (1000 * 60 * 60);
-        if (diffHours > 24) {
+        const diffMinutes = (now - allSeatsState[seatId].reservaDate) / (1000 * 60);
+        if (diffMinutes > RESERVATION_EXPIRATION_MINUTES) {
           state = 'libre';
         }
       }
