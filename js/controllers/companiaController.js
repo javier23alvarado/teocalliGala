@@ -2695,12 +2695,7 @@ document.addEventListener("submit", async (e) => {
     }
     
     // Validar que existen
-    let currentBoletosData = {};
-    if(window.currentBoletosData) currentBoletosData = window.currentBoletosData; // Asegurarse de tener acceso a currentBoletosData (aunque sea global en este archivo)
-    
-    // Como currentBoletosData está encapsulado, lo dejaremos que acceda al scope donde fue declarado si es posible. 
-    // Wait, si lo muevo acá, currentBoletosData y updateDoc y asientosDbRef puede que no estén en scope!
-    // ¡Ah! let currentBoletosData está arriba en el scope del módulo. Así que está bien.
+    // (Usa la variable global del módulo currentBoletosData)
     
     const nonExistent = seatsArr.filter(s => !currentBoletosData[s]);
     if (nonExistent.length > 0) {
