@@ -825,6 +825,11 @@ function filterAndRender() {
 
   // Las métricas grandes muestran los totales globales
   updateMetrics(currentUsersData);
+
+  // Re-renderizar boletos para actualizar los nombres una vez que cargan los usuarios
+  if (typeof renderBoletosTable === 'function') {
+    renderBoletosTable();
+  }
 }
 
 // ====================================================
