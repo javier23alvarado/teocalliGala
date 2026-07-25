@@ -826,9 +826,12 @@ function filterAndRender() {
   // Las métricas grandes muestran los totales globales
   updateMetrics(currentUsersData);
 
-  // Re-renderizar boletos para actualizar los nombres una vez que cargan los usuarios
+  // Re-renderizar boletos y selects para actualizar los nombres una vez que cargan los usuarios
   if (typeof renderBoletosTable === 'function') {
     renderBoletosTable();
+  }
+  if (typeof populateBailarinesSelect === 'function') {
+    populateBailarinesSelect();
   }
 }
 
@@ -2355,21 +2358,17 @@ function openBoletoModal(seatId) {
     boletoBailarinGroup.style.display = 'block';
   }
   
-  getDoc(asientosDbRef).then(docSnap => {
-    if(docSnap.exists()){
-      const seatData = docSnap.data().asientos[seatId];
-      if(seatData && seatData.bailarin_id) {
-        boletoBailarinSelect.value = seatData.bailarin_id;
-      } else {
-        boletoBailarinSelect.value = '';
-      }
-      
-      const comentarioInput = document.getElementById('boleto-comentario');
-      if (comentarioInput) {
-        comentarioInput.value = (seatData && seatData.comentario) ? seatData.comentario : '';
-      }
-    }
-  });
+  const seatData = currentBoletosData ? currentBoletosData[seatId] : null;
+  if(seatData && seatData.bailarin_id) {
+    boletoBailarinSelect.value = seatData.bailarin_id;
+  } else {
+    boletoBailarinSelect.value = '';
+  }
+  
+  const comentarioInput = document.getElementById('boleto-comentario');
+  if (comentarioInput) {
+    comentarioInput.value = (seatData && seatData.comentario) ? seatData.comentario : '';
+  }
   
   boletoModal.style.display = 'flex';
 }
@@ -2377,18 +2376,20 @@ function openBoletoModal(seatId) {
 async function populateBailarinesSelect() {
   if (!boletoBailarinSelect) return;
   try {
-    const q = query(collection(db, 'usuarios'), where('activo', '==', true));
-    const querySnapshot = await getDocs(q);
     boletoBailarinSelect.innerHTML = '<option value="">Selecciona un usuario...</option>';
     if (filterBoletoBailarin) filterBoletoBailarin.innerHTML = '<option value="todos">Todos</option>';
     if (typeof massAssignUserSelect !== 'undefined' && massAssignUserSelect) {
       massAssignUserSelect.innerHTML = '<option value="">(Ninguno)</option>';
     }
-    querySnapshot.forEach((d) => {
-      const u = d.data();
+    
+    // Filtrar solo usuarios activos de la caché local en lugar de consultar Firestore
+    const activeUsers = currentUsersData.filter(u => u.activo === true);
+    
+    activeUsers.forEach((u) => {
       const opt = document.createElement('option');
-      opt.value = d.id;
-      opt.textContent = `${u.nombres} ${u.apellidoPaterno} (${u.alias || 'Sin alias'})`;
+      const uid = u.uid || u.id;
+      opt.value = uid;
+      opt.textContent = `${u.nombres || ''} ${u.apellidoPaterno || ''} (${u.alias || 'Sin alias'})`;
       boletoBailarinSelect.appendChild(opt);
       
       if (filterBoletoBailarin) {
@@ -2399,11 +2400,6 @@ async function populateBailarinesSelect() {
       if (typeof massAssignUserSelect !== 'undefined' && massAssignUserSelect) {
         const optMass = opt.cloneNode(true);
         massAssignUserSelect.appendChild(optMass);
-      }
-      
-      // Aseguramos que currentUsersData tenga los usuarios para el mapeo
-      if (!currentUsersData.find(user => (user.id === d.id || user.uid === d.id))) {
-        currentUsersData.push({ id: d.id, uid: d.id, ...u });
       }
     });
   } catch(error) {
