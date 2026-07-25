@@ -2497,6 +2497,7 @@ function renderBoletosTable() {
     if (estado === "vendido") estadoBadge = `<span class="badge" style="background-color: #ef4444; color: white;">Vendido</span>`;
 
     tr.innerHTML = `
+      <td style="text-align: center;"><input type="checkbox" class="boleto-checkbox" value="${seatId}"></td>
       <td style="font-weight: bold; text-align: center;">${seatId}</td>
       <td style="text-align: center;">${estadoBadge}</td>
       <td style="text-align: center;">${estado === 'libre' && (!bailarinId || bailarinId === 'todos') ? '<span style="color:var(--text-muted)">-</span>' : bailarinName}</td>
@@ -2509,8 +2510,11 @@ function renderBoletosTable() {
   });
 
   if (!hasRows) {
-    boletosTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No hay asientos que coincidan con los filtros.</td></tr>`;
+    boletosTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No hay asientos que coincidan con los filtros.</td></tr>`;
   }
+  
+  const selectAllCb = document.getElementById('selectAllBoletos');
+  if (selectAllCb) selectAllCb.checked = false;
 
   // Bind edit buttons
   document.querySelectorAll('.btn-edit-seat').forEach(btn => {
@@ -2641,7 +2645,10 @@ document.addEventListener("click", (e) => {
       const input = document.getElementById("mass-assign-input");
       const userSel = document.getElementById("mass-assign-user-select");
       const statusSel = document.getElementById("mass-assign-status-select");
-      if (input) input.value = "";
+      if (input) {
+        const selectedSeats = Array.from(document.querySelectorAll(".boleto-checkbox:checked")).map(cb => cb.value);
+        input.value = selectedSeats.length > 0 ? selectedSeats.join(", ") : "";
+      }
       if (userSel) {
         userSel.innerHTML = '<option value="">(Ninguno)</option>';
         currentUsersData.forEach(u => {
@@ -2664,6 +2671,15 @@ document.addEventListener("click", (e) => {
   if (e.target.closest("#btn-close-mass-assign-modal")) {
     const modal = document.getElementById("mass-assign-modal");
     if (modal) modal.style.display = "none";
+  }
+});
+
+document.addEventListener("change", (e) => {
+  if (e.target.id === "selectAllBoletos") {
+    const isChecked = e.target.checked;
+    document.querySelectorAll(".boleto-checkbox").forEach(cb => {
+      cb.checked = isChecked;
+    });
   }
 });
 

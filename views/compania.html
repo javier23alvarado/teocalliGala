@@ -579,6 +579,9 @@
             <table class="data-table" id="boletos-table">
               <thead>
                 <tr>
+                  <th style="position: sticky; top: 0; background: var(--bg-card); z-index: 10; width: 40px; text-align: center;">
+                    <input type="checkbox" id="selectAllBoletos" title="Seleccionar todos">
+                  </th>
                   <th style="position: sticky; top: 0; background: var(--bg-card); z-index: 10;">Asiento</th>
                   <th style="position: sticky; top: 0; background: var(--bg-card); z-index: 10;">Estado</th>
                   <th style="position: sticky; top: 0; background: var(--bg-card); z-index: 10;">Usuario Asignado</th>
@@ -588,7 +591,7 @@
               </thead>
               <tbody id="boletos-table-body">
                 <tr>
-                  <td colspan="5" style="text-align: center; color: var(--text-muted);">Cargando asientos...</td>
+                  <td colspan="6" style="text-align: center; color: var(--text-muted);">Cargando asientos...</td>
                 </tr>
               </tbody>
             </table>
