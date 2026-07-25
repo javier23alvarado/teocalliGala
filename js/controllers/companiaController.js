@@ -2375,6 +2375,10 @@ async function populateBailarinesSelect() {
     const q = query(collection(db, 'usuarios'), where('activo', '==', true));
     const querySnapshot = await getDocs(q);
     boletoBailarinSelect.innerHTML = '<option value="">Selecciona un usuario...</option>';
+    if (filterBoletoBailarin) filterBoletoBailarin.innerHTML = '<option value="todos">Todos</option>';
+    if (typeof massAssignUserSelect !== 'undefined' && massAssignUserSelect) {
+      massAssignUserSelect.innerHTML = '<option value="">(Ninguno)</option>';
+    }
     querySnapshot.forEach((d) => {
       const u = d.data();
       const opt = document.createElement('option');
@@ -2393,8 +2397,8 @@ async function populateBailarinesSelect() {
       }
       
       // Aseguramos que currentUsersData tenga los usuarios para el mapeo
-      if (!currentUsersData.find(user => user.id === d.id)) {
-        currentUsersData.push({ id: d.id, ...u });
+      if (!currentUsersData.find(user => (user.id === d.id || user.uid === d.id))) {
+        currentUsersData.push({ id: d.id, uid: d.id, ...u });
       }
     });
   } catch(error) {
