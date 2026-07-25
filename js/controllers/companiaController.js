@@ -2471,7 +2471,10 @@ function renderBoletosTable() {
 
   const userMap = {};
   currentUsersData.forEach(u => {
-    userMap[u.id] = (u.nombres || "") + " " + (u.apellidoPaterno || "");
+    const key = u.uid || u.id;
+    if (key) {
+      userMap[key] = (u.nombres || "") + " " + (u.apellidoPaterno || "");
+    }
   });
 
   let hasRows = false;
