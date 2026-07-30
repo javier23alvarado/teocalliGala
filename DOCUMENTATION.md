@@ -2,7 +2,7 @@
 
 **Proyecto**: Ballet Folclórico Compañía Teocalli  
 **Repositorio**: `javier23alvarado/teocalliGala`  
-**Última actualización**: 24 de Julio del 2026, 17:50 hrs (Implementación Limpieza Usuarios y Expiración Reservas)  
+**Última actualización**: 29 de Julio del 2026 (Corrección de Plano Teatro Galerías, Asignación Masiva, Cache-Busting y Auto-completado de Asientos)  
 
 ---
 
@@ -124,6 +124,19 @@ Se integró un nuevo panel exclusivo para Administradores bajo la sección **"Bo
   * Cada butaca (div) permite abrir un modal interactivo donde el administrador puede asignar el estado: **Libre**, **Reservado**, o **Vendido**.
   * Se pueden vincular boletos al ID de un bailarín específico.
   * Se agregó soporte para escribir notas o comentarios de clientes por cada asiento (ej. comprador, observaciones).
+* **Selección Múltiple y Asignación Masiva**:
+  * Casilla de selección múltiple (checkbox) en cada renglón de la tabla y casilla de selección global en el encabezado.
+  * Al seleccionar asientos y hacer clic en **Asignación Masiva**, las claves se autocompletan en el campo de texto (ej. `A4, A5, A6`).
+  * Permite liberar boletos masivamente dejando el selector de usuario en `(Ninguno)` con el estado `Libre`.
+* **Traducción de Nombres y Resiliencia en Tiempo Real**:
+  * El diccionario de usuarios (`userMap`) acepta de forma transparente tanto `u.uid` como `u.id` para garantizar que la tabla siempre resuelva el nombre completo del bailarín en lugar de mostrar la clave cruda de Firebase Auth.
+  * Se sincroniza automáticamente con la llegada del snapshot de usuarios, resolviendo condiciones de carrera (*race conditions*).
+* **Auto-completado de Asientos del Layout y Optimización de Lecturas**:
+  * Para economizar lecturas en Firestore, la tabla y los modales se alimentan directamente de las cachés en RAM (`currentUsersData` y `currentBoletosData`).
+  * El sistema extrae todos los 1,875 asientos del plano (`mapaGaleriasLayout.json`) y auto-completa localmente lasbutacas que aún no existen en Firestore como `Libre`. Esto permite buscar y editar cualquier asiento (ej. `BB20`, `BB22`) directamente desde la tabla de administración sin necesidad de reiniciar la base de datos.
+* **Regeneración Automatizada del Plano y Cache-Busting**:
+  * Se creó la herramienta automatizada `tools/regenerate_map_json.js` que valida el archivo CSV fuente de verdad (`mapaGalerias/Boletos Galerias - Hoja 1.csv`), verifica la consistencia de prefijos y duplicados, y regenera `js/data/mapaGaleriasLayout.json`.
+  * Todas las solicitudes `fetch` al JSON del layout incluyen un parámetro *cache-buster* (`?v=timestamp`) para forzar la descarga de la versión más reciente del plano evitando almacenamiento en caché de Firebase CDN o del navegador.
 * **Bloque de Escenario**: El área de "ESCENARIO" original (que ocupaba múltiples celdas en el CSV) fue optimizada para no ocupar 9 filas fantasma en el HTML. Se consolida en un solo bloque estético en la base, acercando el escenario real a las butacas.
 
 ### Taquilla Pública Interactiva (index.html) - Rediseño Elite UI/UX
