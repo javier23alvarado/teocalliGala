@@ -89,6 +89,7 @@ const filterBoletoEstado = document.getElementById("filter-boleto-estado");
 const filterBoletoBailarin = document.getElementById("filter-boleto-bailarin");
 const btnExportBoletos = document.getElementById("btn-export-boletos");
 let currentBoletosData = {}; // Cache for table filtering
+let allLayoutSeatIds = []; // Todos los IDs válidos del mapa de la sala
 
 // Mass Assign Modal
 const btnMassAssign = document.getElementById("btn-mass-assign");
@@ -2142,6 +2143,18 @@ async function setupBoletosModule() {
     const mapData = await res.json();
     renderMapGrid(mapData);
     
+    // Extraer todos los IDs de asientos del layout
+    allLayoutSeatIds = [];
+    if (mapData && mapData.layout) {
+      mapData.layout.forEach(row => {
+        row.forEach(cell => {
+          if (cell && cell.trim() !== '' && cell.trim() !== 'pasillo' && cell.trim().toUpperCase() !== 'ESCENARIO') {
+            allLayoutSeatIds.push(cell.trim());
+          }
+        });
+      });
+    }
+    
     if (typeof Panzoom !== 'undefined' && teatroMapGrid) {
       const pz = Panzoom(teatroMapGrid, {
         maxScale: 5,
@@ -2186,6 +2199,15 @@ async function setupBoletosModule() {
           }
         }
       });
+      
+      // Asegurar que todos los asientos del mapa tengan entrada en la memoria local
+      if (allLayoutSeatIds.length > 0) {
+        allLayoutSeatIds.forEach(seatId => {
+          if (!data[seatId]) {
+            data[seatId] = { estado: 'libre', bailarin_id: null, comentario: '' };
+          }
+        });
+      }
       
       currentBoletosData = data;
       updateMapUI(data);
