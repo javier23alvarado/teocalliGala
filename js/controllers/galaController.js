@@ -50,7 +50,7 @@ if (modalReservaGala) {
 // --- Lógica del Mapa ---
 async function initPublicMap() {
   try {
-    const res = await fetch('js/data/mapaGaleriasLayout.json');
+    const res = await fetch('js/data/mapaGaleriasLayout.json?v=' + Date.now());
     const mapData = await res.json();
     renderPublicMapGrid(mapData);
     

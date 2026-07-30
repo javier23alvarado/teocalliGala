@@ -2137,7 +2137,7 @@ async function setupBoletosModule() {
   const boletoModalTitle = document.getElementById('boleto-modal-title');
   
   try {
-    const res = await fetch('js/data/mapaGaleriasLayout.json');
+    const res = await fetch('js/data/mapaGaleriasLayout.json?v=' + Date.now());
     if (!res.ok) throw new Error('No se pudo cargar el layout');
     const mapData = await res.json();
     renderMapGrid(mapData);
@@ -2202,7 +2202,7 @@ async function setupBoletosModule() {
     btnInitMap.addEventListener('click', async () => {
       if (!confirm('¿Seguro que deseas inicializar todos los asientos como Libres? Esto sobrescribirá datos existentes.')) return;
       
-      const res = await fetch('js/data/mapaGaleriasLayout.json');
+      const res = await fetch('js/data/mapaGaleriasLayout.json?v=' + Date.now());
       const mapData = await res.json();
       const initialAsientos = {};
       
