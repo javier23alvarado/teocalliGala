@@ -2,7 +2,7 @@
 
 **Proyecto**: Ballet Folclórico Compañía Teocalli  
 **Repositorio**: `javier23alvarado/teocalliGala`  
-**Última actualización**: 29 de Julio del 2026 (Corrección de Plano Teatro Galerías, Asignación Masiva, Cache-Busting y Auto-completado de Asientos)  
+**Última actualización**: 31 de Julio del 2026 (Acceso Multifunción a Mis Boletos Gala para Administradores y Bailarines)  
 
 ---
 
@@ -68,12 +68,15 @@ c:/software/teocalli/
    * Acceso total a la plataforma.
    * Gestión completa de usuarios (Crear, Editar, Activar/Desactivar, Eliminar).
    * Creación, edición y eliminación de eventos en la Agenda.
+   * Gestión completa de la Taquilla Gala (Mapa y Administración de todos los asientos) y consulta/modificación en "Mis Boletos Gala".
 2. **Administrador (`admin`)**:
    * Gestión de la Agenda (Crear, Editar, Eliminar eventos de su compañía).
    * Consulta de miembros.
+   * Gestión de la Taquilla Gala (Mapa de teatro y Administración) y consulta/modificación de sus propios asientos asignados en "Mis Boletos Gala".
 3. **Bailarín (`bailarin`)**:
    * Visualización de su perfil individual y actualización de datos/foto de perfil.
    * Visualización de agenda personalizada (Ensayos de su compañía y Presentaciones convocadas).
+   * Acceso exclusivo al apartado **"Mis Boletos Gala"**, donde consulta y modifica el estado únicamente de las butacas que le fueron explícitamente asignadas (`bailarin_id === uid`).
 
 ### Flujo de Contraseña por Defecto
 * Al registrar un nuevo usuario desde la consola administrativa, la contraseña inicial asignada es **`teocalli2026`**.

@@ -428,6 +428,7 @@ function initializeDashboard(profile) {
     if (userRegistrationCard) userRegistrationCard.remove();
     if (sidebarOptBoletos) sidebarOptBoletos.remove();
     if (dbSectionBoletos) dbSectionBoletos.remove();
+    if (typeof setupBoletosModule === "function") setupBoletosModule();
 
     // Obtener nombre legible de su compañía vinculada
     const companyObj = companiesCatalog.find(c => c.id === profile.id_compania);
@@ -2131,55 +2132,49 @@ let asientosDbRef = null;
 let unsubscribeBoletos = null;
 
 async function setupBoletosModule() {
-  
+  if (unsubscribeBoletos) return;
 
-  if (!dbSectionBoletos) return;
-  
-  const boletoModalTitle = document.getElementById('boleto-modal-title');
-  
-  try {
-    const res = await fetch('js/data/mapaGaleriasLayout.json?v=' + Date.now());
-    if (!res.ok) throw new Error('No se pudo cargar el layout');
-    const mapData = await res.json();
-    renderMapGrid(mapData);
-    
-    // Extraer todos los IDs de asientos del layout
-    allLayoutSeatIds = [];
-    if (mapData && mapData.layout) {
-      mapData.layout.forEach(row => {
-        row.forEach(cell => {
-          if (cell && cell.trim() !== '' && cell.trim() !== 'pasillo' && cell.trim().toUpperCase() !== 'ESCENARIO') {
-            allLayoutSeatIds.push(cell.trim());
-          }
-        });
-      });
+  if (dbSectionBoletos) {
+    try {
+      const res = await fetch('js/data/mapaGaleriasLayout.json?v=' + Date.now());
+      if (res.ok) {
+        const mapData = await res.json();
+        renderMapGrid(mapData);
+        
+        // Extraer todos los IDs de asientos del layout
+        allLayoutSeatIds = [];
+        if (mapData && mapData.layout) {
+          mapData.layout.forEach(row => {
+            row.forEach(cell => {
+              if (cell && cell.trim() !== '' && cell.trim() !== 'pasillo' && cell.trim().toUpperCase() !== 'ESCENARIO') {
+                allLayoutSeatIds.push(cell.trim());
+              }
+            });
+          });
+        }
+        
+        if (typeof Panzoom !== 'undefined' && teatroMapGrid) {
+          const pz = Panzoom(teatroMapGrid, {
+            maxScale: 5,
+            minScale: 0.1,
+            startScale: 0.45, 
+            step: 0.2
+          });
+          teatroMapGrid.parentElement.addEventListener('wheel', pz.zoomWithWheel);
+          
+          setTimeout(() => {
+            pz.pan(0, 0); // Un offset razonable para empezar centrado
+          }, 100);
+        }
+      }
+    } catch (error) {
+      console.error('Error al cargar mapaGaleriasLayout.json:', error);
+      if (teatroMapGrid) teatroMapGrid.innerHTML = '<p style="color:red;text-align:center;">Error al cargar el mapa visual.</p>';
     }
-    
-    if (typeof Panzoom !== 'undefined' && teatroMapGrid) {
-      const pz = Panzoom(teatroMapGrid, {
-        maxScale: 5,
-        minScale: 0.1,
-        startScale: 0.45, 
-        step: 0.2
-      });
-      teatroMapGrid.parentElement.addEventListener('wheel', pz.zoomWithWheel);
-      
-      setTimeout(() => {
-        const parentBounds = teatroMapGrid.parentElement.getBoundingClientRect();
-        const gridBounds = teatroMapGrid.getBoundingClientRect();
-        // Centro real
-        const startX = (parentBounds.width - (gridBounds.width / 0.7)) / 2;
-        const startY = (parentBounds.height - (gridBounds.height / 0.7)) / 2;
-        pz.pan(0, 0); // Un offset razonable para empezar centrado
-      }, 100);
-    }
-  } catch (error) {
-    console.error('Error al cargar mapaGaleriasLayout.json:', error);
-    if (teatroMapGrid) teatroMapGrid.innerHTML = '<p style="color:red;text-align:center;">Error al cargar el mapa visual.</p>';
+
+    populateBailarinesSelect();
+    setupBoletosTabsAndFilters();
   }
-
-  populateBailarinesSelect();
-  setupBoletosTabsAndFilters();
   
   asientosDbRef = doc(db, 'gala', 'estadoBoletos');
   unsubscribeBoletos = onSnapshot(asientosDbRef, (docSnap) => {
@@ -2210,7 +2205,7 @@ async function setupBoletosModule() {
       }
       
       currentBoletosData = data;
-      updateMapUI(data);
+      if (dbSectionBoletos) updateMapUI(data);
       if (tabContentBoletosTable && tabContentBoletosTable.style.display !== 'none') {
         renderBoletosTable();
       }
@@ -2555,18 +2550,24 @@ function renderMisBoletosTable() {
   if (!misboletosTableBody) return;
   misboletosTableBody.innerHTML = "";
 
-  if (!currentBoletosData || !currentUserProfile || !currentUserProfile.uid) {
-    misboletosTableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">Cargando...</td></tr>`;
+  if (!currentUserProfile) {
+    misboletosTableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">Cargando perfil...</td></tr>`;
+    return;
+  }
+
+  if (!currentBoletosData || Object.keys(currentBoletosData).length === 0) {
+    misboletosTableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">Cargando boletos...</td></tr>`;
     return;
   }
 
   let hasRows = false;
+  const userUid = (currentUserProfile.uid || currentUserProfile.id || "").toString().trim();
 
   Object.entries(currentBoletosData).forEach(([seatId, info]) => {
     const estado = info.estado || "libre";
-    const bailarinId = info.bailarin_id;
+    const bailarinId = info.bailarin_id ? info.bailarin_id.toString().trim() : "";
 
-    if (bailarinId !== currentUserProfile.uid) return;
+    if (!bailarinId || bailarinId !== userUid) return;
 
     hasRows = true;
 
