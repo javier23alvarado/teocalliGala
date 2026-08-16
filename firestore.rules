@@ -1,42 +1,41 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Colección /usuarios (Perfiles, Roles, Autenticación)
     match /usuarios/{userId} {
-      // Cualquier usuario autenticado y activo puede leer su propio documento
-      allow read: if request.auth != null && request.auth.uid == userId && resource.data.activo == true;
-      
-      // El documento raíz del SuperAdmin original siempre es legible/escribible por él mismo si está autenticado
+      // 1. Lectura del propio perfil al iniciar sesión
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // 2. Acceso total para el SuperAdmin original
       allow read, write: if request.auth != null && request.auth.uid == "4J5PxGAHnkM1CaNm7L24hkhkD8A2";
 
-      // El Administrador y Super Administrador pueden leer el listado de usuarios
-      allow get, list: if request.auth != null && 
-        (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.id_rol in ["super_admin", "admin"] ||
-         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol in ["super_admin", "admin"]) &&
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.activo == true;
+      // 3. Usuarios autenticados pueden consultar listado de miembros
+      allow read: if request.auth != null;
 
-      // Solo el Super Administrador puede crear, actualizar o eliminar usuarios
-      allow create, update, delete: if request.auth != null && 
-        (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.id_rol == "super_admin" ||
-         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == "super_admin") &&
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.activo == true;
+      // 4. Creación/Edición/Eliminación por usuarios autenticados
+      allow create, update, delete: if request.auth != null;
     }
 
+    // Colección /companias (Catálogo de compañías)
+    match /companias/{companyId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Documento Único de Boletos Gala (/gala/estadoBoletos)
     match /gala/estadoBoletos {
-      // Permitimos lectura y escritura pública para el mapa interactivo
       allow read, write: if true;
     }
 
+    // Colección /agenda (Ensayos, Presentaciones, Talleres)
     match /agenda/{eventId} {
-      // Lectura pública para poder mostrar talleres y presentaciones en la landing page
       allow read: if true;
-      
-      // Escritura restringida a super_admin y admin activos
-      allow write: if request.auth != null && 
-        (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.id_rol == "super_admin" ||
-         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.id_rol == "admin" ||
-         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == "super_admin" ||
-         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == "admin") &&
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.activo == true;
+      allow write: if request.auth != null;
+    }
+
+    // Regla de producción general para cualquier otra colección autenticada
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
