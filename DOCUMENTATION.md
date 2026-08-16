@@ -2,7 +2,7 @@
 
 **Proyecto**: Ballet Folclórico Compañía Teocalli  
 **Repositorio**: `javier23alvarado/teocalliGala`  
-**Última actualización**: 31 de Julio del 2026 (Acceso Multifunción a Mis Boletos Gala para Administradores y Bailarines)  
+**Última actualización**: 15 de Agosto del 2026 (Seguridad de Producción Permanente en Firestore y Vinculación en firebase.json)  
 
 ---
 
@@ -188,9 +188,16 @@ npx live-server .
 python -m http.server 8000
 ```
 
-### Despliegue en Firebase Hosting
+### Despliegue en Firebase (Hosting y Reglas de Seguridad)
 ```bash
 firebase login
+# Despliegue completo (Hosting y Reglas de Firestore en simultáneo)
+firebase deploy
+
+# Despliegue solo de reglas de seguridad
+firebase deploy --only firestore:rules
+
+# Despliegue solo del sitio web
 firebase deploy --only hosting
 ```
 
@@ -215,3 +222,14 @@ El formulario de creación y edición de usuarios cuenta con un blindaje multica
 
 *   **Liberación Automática (10 Minutos)**: Toda reserva (`estado: 'reservado'`) generada por los usuarios desde la Taquilla Pública cuenta con un contador configurable mediante la variable global `RESERVATION_EXPIRATION_MINUTES` (por defecto 10 minutos). Una vez superado este límite de tiempo, la plataforma muestra de forma automática dichos asientos como `libre` permitiendo que otros clientes puedan comprarlos.
 *   **Cascada de Eliminación**: Al eliminar permanentemente a un usuario desde el panel del Administrador, el sistema verifica iterativamente todo el mapa de asientos buscando boletos asignados a ese usuario (`bailarin_id === uid_eliminado`) y, antes de finalizar, modifica el estado de los mismos directamente en Firestore, limpiando su ID, eliminando comentarios y devolviendo las butacas a estado `libre`.
+
+---
+
+## 🛡️ 11. Reglas de Seguridad Permanentes de Cloud Firestore (Producción)
+
+Para prevenir el bloqueo automático que aplica Firebase cuando una base de datos se inicializa en "Modo de Prueba" (Test Mode expiration de 30 días), la infraestructura del proyecto utiliza un esquema de seguridad de producción permanente en `firestore.rules` vinculado en `firebase.json`:
+
+*   **Sin Fechas de Expiración**: Se eliminaron totalmente las condiciones basadas en tiempo (`request.time < timestamp.date(...)`), garantizando disponibilidad 24/7 sin riesgo de caídas por vencimiento.
+*   **Acceso Autenticado Protegido**: Las colecciones `/usuarios`, `/companias` y la regla general de respaldo (`match /{document=**}`) permiten operaciones de lectura y escritura únicamente a usuarios autenticados (`request.auth != null`).
+*   **Mapa de Boletos y Cartelera Pública**: El documento del mapa de asientos (`/gala/estadoBoletos`) y los eventos de `/agenda` mantienen acceso de lectura/escritura pública directa para garantizar que los clientes puedan consultar la cartelera y reservar boletos desde la Taquilla sin necesidad de iniciar sesión.
+*   **Vinculación en Despliegue**: El archivo `firebase.json` incluye la directiva `"firestore": { "rules": "firestore.rules" }`, lo que asegura que cualquier despliegue sincronice automáticamente el motor de seguridad en los servidores de Google Cloud.
