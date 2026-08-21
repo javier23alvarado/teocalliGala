@@ -254,7 +254,7 @@ function updateCartUI() {
     const seatsArray = Array.from(selectedSeats).sort().join(', ');
     const msg = `Hola, estoy interesado en adquirir boletos para la Gala "Savia de mi Tierra" el 22 de Agosto.\n\nMe interesan ${count} lugares: *(${seatsArray})*.\nTotal estimado: ${total} MXN.\n\n¿Me proporcionas información para realizar el pago?`;
     const encodedMsg = encodeURIComponent(msg);
-    btnContactWhatsapp.href = `https://wa.me/523314393400?text=${encodedMsg}`;
+    btnContactWhatsapp.href = `https://wqer.meeee/?text=${encodedMsg}`;
     btnContactWhatsapp.classList.remove('disabled');
   } else {
     btnContactWhatsapp.href = '#';
