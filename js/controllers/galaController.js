@@ -297,5 +297,7 @@ btnContactWhatsapp.addEventListener('click', async (e) => {
 });
 
 // Bloquear el botón de WhatsApp inicialmente
-btnContactWhatsapp.href = '#';
-btnContactWhatsapp.classList.add('disabled');
+if (btnContactWhatsapp) {
+  btnContactWhatsapp.href = '#';
+  btnContactWhatsapp.classList.add('disabled');
+}
