@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gala Teocalli | Savia de mi Tierra</title>
   <meta name="description" content="Gala Teocalli - Savia de mi Tierra. Ballet Folclórico Compañía Teocalli.">
-  <link rel="stylesheet" href="css/style.css?v=3.14">
+  <link rel="stylesheet" href="css/style.css?v=4.0">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;700&family=Cormorant+Garamond:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body class="gala-minimal-body">
@@ -163,143 +163,186 @@
     </div>
   </div>
 
-  <!-- Modal Programa de Mano -->
-  <div id="modal-programa-mano" class="gala-modal-overlay">
-    <div class="gala-modal-content gala-glass-modal">
-      
-      <!-- Encabezado del Modal -->
-      <div class="programa-modal-header">
-        <div class="programa-modal-title">
-          <span>📖 Programa de Mano</span>
-        </div>
-        <button id="btn-close-programa" class="gala-modal-close" aria-label="Cerrar">&times;</button>
+  <!-- Modal Programa de Mano (Visor Lightbox Fullscreen Responsivo) -->
+  <div id="modal-programa-mano" class="programa-viewer-overlay">
+    
+    <!-- Barra Superior Flotante -->
+    <div class="programa-viewer-topbar">
+      <div class="programa-badge">
+        <span>📖 Programa de Mano</span>
       </div>
-      
-      <!-- Contenedor de la Imagen (Ajuste dinámico Flexbox) -->
-      <div id="carousel-container">
-        <img id="programa-img" src="assets/programaMano/01.webp" alt="Programa de Mano">
-      </div>
-
-      <!-- Controles Inferiores (Fijos en la base del viewport) -->
-      <div id="carousel-controls">
-        <button id="btn-prev-img" aria-label="Página anterior">&#8592;</button>
-        <div id="programa-indicator">Página 1 de 10</div>
-        <button id="btn-next-img" aria-label="Página siguiente">&#8594;</button>
-      </div>
+      <button id="btn-close-programa" class="programa-close-btn" aria-label="Cerrar">&times;</button>
     </div>
+
+    <!-- Área Principal de la Imagen -->
+    <div id="carousel-container" class="programa-viewer-main">
+      <!-- Flechas Flotantes Laterales -->
+      <button id="btn-prev-img" class="programa-nav-btn programa-nav-left" aria-label="Anterior">&#8249;</button>
+      
+      <img id="programa-img" src="assets/programaMano/01.webp" alt="Programa de Mano">
+      
+      <button id="btn-next-img" class="programa-nav-btn programa-nav-right" aria-label="Siguiente">&#8250;</button>
+    </div>
+
+    <!-- Barra de Control Inferior Flotante -->
+    <div class="programa-viewer-bottombar">
+      <button id="btn-prev-bottom" class="programa-bottom-btn" aria-label="Anterior">
+        <span>&#8592;</span> Anterior
+      </button>
+      
+      <span id="programa-counter-text" class="programa-bottom-counter">Página 1 de 10</span>
+      
+      <button id="btn-next-bottom" class="programa-bottom-btn" aria-label="Siguiente">
+        Siguiente <span>&#8594;</span>
+      </button>
+    </div>
+
   </div>
 
   <!-- Script de Gala Público -->
   <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
-  <script type="module" src="js/controllers/galaController.js?v=7.1"></script>
+  <script type="module" src="js/controllers/galaController.js?v=8.0"></script>
 
-  <!-- Lógica del Programa de Mano -->
+  <!-- Lógica Optimizada del Visor de Programa de Mano -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      console.log("Inicializando Programa de Mano...");
+      console.log("Inicializando Visor de Programa de Mano...");
+      
       const btnProgramaMano = document.getElementById("btn-programa-mano");
       const modalProgramaMano = document.getElementById("modal-programa-mano");
       const btnClosePrograma = document.getElementById("btn-close-programa");
       const btnPrevImg = document.getElementById("btn-prev-img");
       const btnNextImg = document.getElementById("btn-next-img");
+      const btnPrevBottom = document.getElementById("btn-prev-bottom");
+      const btnNextBottom = document.getElementById("btn-next-bottom");
       const programaImg = document.getElementById("programa-img");
-      const programaIndicator = document.getElementById("programa-indicator");
+      const programaCounterText = document.getElementById("programa-counter-text");
       const carouselContainer = document.getElementById("carousel-container");
 
       const NUM_PAGES = 10;
       let currentPage = 1;
+      const preloadedImages = [];
 
-      function updateProgramaView() {
+      // Pre-cargar todas las imágenes en memoria para navegación instantánea
+      function preloadAllPages() {
+        for (let i = 1; i <= NUM_PAGES; i++) {
+          const pageStr = i.toString().padStart(2, '0');
+          const img = new Image();
+          img.src = `assets/programaMano/${pageStr}.webp`;
+          preloadedImages.push(img);
+        }
+      }
+      preloadAllPages();
+
+      function updateProgramaView(animate = true) {
         if (!programaImg) return;
         const pageStr = currentPage.toString().padStart(2, '0');
-        programaImg.src = `assets/programaMano/${pageStr}.webp`;
-        if (programaIndicator) {
-          programaIndicator.textContent = `Página ${currentPage} de ${NUM_PAGES}`;
+
+        if (animate) {
+          programaImg.style.opacity = '0.3';
+          programaImg.style.transform = 'scale(0.98)';
+        }
+
+        setTimeout(() => {
+          programaImg.src = `assets/programaMano/${pageStr}.webp`;
+          if (programaCounterText) {
+            programaCounterText.textContent = `Página ${currentPage} de ${NUM_PAGES}`;
+          }
+          if (animate) {
+            programaImg.style.opacity = '1';
+            programaImg.style.transform = 'scale(1)';
+          }
+        }, animate ? 100 : 0);
+      }
+
+      function goToPrevPage() {
+        currentPage = (currentPage > 1) ? currentPage - 1 : NUM_PAGES;
+        updateProgramaView();
+      }
+
+      function goToNextPage() {
+        currentPage = (currentPage < NUM_PAGES) ? currentPage + 1 : 1;
+        updateProgramaView();
+      }
+
+      // Abrir modal
+      if (btnProgramaMano && modalProgramaMano) {
+        btnProgramaMano.addEventListener("click", () => {
+          currentPage = 1;
+          updateProgramaView(false);
+          modalProgramaMano.classList.add("active");
+          document.body.style.overflow = "hidden";
+        });
+      }
+
+      // Cerrar modal
+      function closeModal() {
+        if (modalProgramaMano) {
+          modalProgramaMano.classList.remove("active");
+          document.body.style.overflow = "";
         }
       }
 
-      if (btnProgramaMano && modalProgramaMano) {
-        btnProgramaMano.addEventListener("click", () => {
-          console.log("Abriendo Programa de Mano");
-          currentPage = 1;
-          updateProgramaView();
-          modalProgramaMano.classList.add("active");
-        });
-      } else {
-        console.error("No se encontró el botón o modal del Programa de Mano", { btnProgramaMano, modalProgramaMano });
-      }
-
       if (btnClosePrograma) {
-        btnClosePrograma.addEventListener("click", () => {
-          modalProgramaMano.classList.remove("active");
-        });
+        btnClosePrograma.addEventListener("click", closeModal);
       }
 
       if (modalProgramaMano) {
         modalProgramaMano.addEventListener("click", (e) => {
           if (e.target === modalProgramaMano) {
-            modalProgramaMano.classList.remove("active");
+            closeModal();
           }
         });
       }
 
-      if (btnPrevImg) {
-        btnPrevImg.addEventListener("click", (e) => {
-          e.stopPropagation();
-          if (currentPage > 1) {
-            currentPage--;
-          } else {
-            currentPage = NUM_PAGES;
-          }
-          updateProgramaView();
-        });
-      }
+      // Eventos de botones
+      if (btnPrevImg) btnPrevImg.addEventListener("click", (e) => { e.stopPropagation(); goToPrevPage(); });
+      if (btnNextImg) btnNextImg.addEventListener("click", (e) => { e.stopPropagation(); goToNextPage(); });
+      if (btnPrevBottom) btnPrevBottom.addEventListener("click", (e) => { e.stopPropagation(); goToPrevPage(); });
+      if (btnNextBottom) btnNextBottom.addEventListener("click", (e) => { e.stopPropagation(); goToNextPage(); });
 
-      if (btnNextImg) {
-        btnNextImg.addEventListener("click", (e) => {
-          e.stopPropagation();
-          if (currentPage < NUM_PAGES) {
-            currentPage++;
-          } else {
-            currentPage = 1;
-          }
-          updateProgramaView();
-        });
-      }
-
-      // Gestos Táctiles (Swipe Left / Right en móviles)
+      // Gestos Táctiles (Swipe Left / Right)
       let touchStartX = 0;
+      let touchStartY = 0;
       let touchEndX = 0;
+      let touchEndY = 0;
 
       if (carouselContainer) {
         carouselContainer.addEventListener("touchstart", (e) => {
           touchStartX = e.changedTouches[0].clientX;
+          touchStartY = e.changedTouches[0].clientY;
         }, { passive: true });
 
         carouselContainer.addEventListener("touchend", (e) => {
           touchEndX = e.changedTouches[0].clientX;
+          touchEndY = e.changedTouches[0].clientY;
           handleSwipe();
         }, { passive: true });
       }
 
       function handleSwipe() {
-        const threshold = 40;
-        if (touchEndX < touchStartX - threshold) {
-          if (btnNextImg) btnNextImg.click();
-        } else if (touchEndX > touchStartX + threshold) {
-          if (btnPrevImg) btnPrevImg.click();
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+        const threshold = 35;
+
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > threshold) {
+          if (deltaX < 0) {
+            goToNextPage();
+          } else {
+            goToPrevPage();
+          }
         }
       }
 
       // Navegación por teclado (Flechas y ESC)
       document.addEventListener("keydown", (e) => {
         if (modalProgramaMano && modalProgramaMano.classList.contains("active")) {
-          if (e.key === "ArrowLeft" && btnPrevImg) {
-            btnPrevImg.click();
-          } else if (e.key === "ArrowRight" && btnNextImg) {
-            btnNextImg.click();
-          } else if (e.key === "Escape" && btnClosePrograma) {
-            btnClosePrograma.click();
+          if (e.key === "ArrowLeft") {
+            goToPrevPage();
+          } else if (e.key === "ArrowRight") {
+            goToNextPage();
+          } else if (e.key === "Escape") {
+            closeModal();
           }
         }
       });
