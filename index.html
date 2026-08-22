@@ -165,22 +165,26 @@
 
   <!-- Modal Programa de Mano -->
   <div id="modal-programa-mano" class="gala-modal-overlay">
-    <div class="gala-modal-content gala-glass-modal" style="max-width: 95vw; width: 100%; padding: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; background: #0c0b10; border: 1px solid rgba(233, 30, 99, 0.4);">
+    <div class="gala-modal-content gala-glass-modal">
       
-      <button id="btn-close-programa" class="gala-modal-close" style="position: absolute; top: 10px; right: 15px; z-index: 20;">&times;</button>
+      <!-- Encabezado del Modal -->
+      <div class="programa-modal-header">
+        <div class="programa-modal-title">
+          <span>📖 Programa de Mano</span>
+        </div>
+        <button id="btn-close-programa" class="gala-modal-close" aria-label="Cerrar">&times;</button>
+      </div>
       
-      <!-- Contenedor de la Imagen (Sin botones encima) -->
-      <div id="carousel-container" style="width: 100%; display: flex; justify-content: center; align-items: center; margin-top: 30px;">
-        <img id="programa-img" src="assets/programaMano/01.webp" alt="Programa de Mano" style="max-height: 78vh; max-width: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.8);">
+      <!-- Contenedor de la Imagen (Ajuste dinámico Flexbox) -->
+      <div id="carousel-container">
+        <img id="programa-img" src="assets/programaMano/01.webp" alt="Programa de Mano">
       </div>
 
-      <!-- Controles Inferiores -->
-      <div id="carousel-controls" style="display: flex; align-items: center; justify-content: center; gap: 25px; margin-top: 15px; margin-bottom: 5px;">
-        <button id="btn-prev-img" style="background: rgba(233, 30, 99, 0.15); color: white; border: 1px solid rgba(233,30,99,0.5); border-radius: 50%; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: all 0.2s ease;">&#8592;</button>
-        
-        <div id="programa-indicator" style="color: #fff; font-size: 15px; font-weight: 600; letter-spacing: 1.5px; background: rgba(0,0,0,0.6); padding: 8px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);">Página 1 de 10</div>
-        
-        <button id="btn-next-img" style="background: rgba(233, 30, 99, 0.15); color: white; border: 1px solid rgba(233,30,99,0.5); border-radius: 50%; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: all 0.2s ease;">&#8594;</button>
+      <!-- Controles Inferiores (Fijos en la base del viewport) -->
+      <div id="carousel-controls">
+        <button id="btn-prev-img" aria-label="Página anterior">&#8592;</button>
+        <div id="programa-indicator">Página 1 de 10</div>
+        <button id="btn-next-img" aria-label="Página siguiente">&#8594;</button>
       </div>
     </div>
   </div>
@@ -189,7 +193,7 @@
   <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
   <script type="module" src="js/controllers/galaController.js?v=7.1"></script>
 
-  <!-- Lógica Aislada del Programa de Mano -->
+  <!-- Lógica del Programa de Mano -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       console.log("Inicializando Programa de Mano...");
@@ -200,6 +204,7 @@
       const btnNextImg = document.getElementById("btn-next-img");
       const programaImg = document.getElementById("programa-img");
       const programaIndicator = document.getElementById("programa-indicator");
+      const carouselContainer = document.getElementById("carousel-container");
 
       const NUM_PAGES = 10;
       let currentPage = 1;
@@ -262,6 +267,31 @@
         });
       }
 
+      // Gestos Táctiles (Swipe Left / Right en móviles)
+      let touchStartX = 0;
+      let touchEndX = 0;
+
+      if (carouselContainer) {
+        carouselContainer.addEventListener("touchstart", (e) => {
+          touchStartX = e.changedTouches[0].clientX;
+        }, { passive: true });
+
+        carouselContainer.addEventListener("touchend", (e) => {
+          touchEndX = e.changedTouches[0].clientX;
+          handleSwipe();
+        }, { passive: true });
+      }
+
+      function handleSwipe() {
+        const threshold = 40;
+        if (touchEndX < touchStartX - threshold) {
+          if (btnNextImg) btnNextImg.click();
+        } else if (touchEndX > touchStartX + threshold) {
+          if (btnPrevImg) btnPrevImg.click();
+        }
+      }
+
+      // Navegación por teclado (Flechas y ESC)
       document.addEventListener("keydown", (e) => {
         if (modalProgramaMano && modalProgramaMano.classList.contains("active")) {
           if (e.key === "ArrowLeft" && btnPrevImg) {
