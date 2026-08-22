@@ -2,7 +2,7 @@
 
 **Proyecto**: Ballet Folclórico Compañía Teocalli  
 **Repositorio**: `javier23alvarado/teocalliGala`  
-**Última actualización**: 24 de Julio del 2026, 17:50 hrs (Implementación Limpieza Usuarios y Expiración Reservas)  
+**Última actualización**: 22 de Agosto del 2026 (Visor Fullscreen Lightbox Responsivo para Programa de Mano con Precarga en Memoria y Paginado Minimalista)  
 
 ---
 
@@ -202,16 +202,16 @@ El formulario de creación y edición de usuarios cuenta con un blindaje multica
 
 ---
 
-## 📖 11. Programa de Mano Interactivo
+## 📖 11. Visor Fullscreen Lightbox - Programa de Mano
 
-Se ha reemplazado la taquilla de reserva temporalmente para habilitar un visor interactivo del **Programa de Mano** de la Gala. 
+Se ha implementado un visor interactivo fullscreen de alto impacto visual (*Lightbox Native-Style*) para el **Programa de Mano** de la Gala Savia de mi Tierra.
 
-### Características del Carrusel Visual
-* **Aislamiento Técnico**: El script del carrusel se ha implementado de forma nativa e independiente en `index.html` garantizando que siempre se ejecute, incluso en escenarios donde los módulos de Firebase fallen en inicializarse o estén en modo Demo.
-* **Diseño Inmersivo (Dark Theme)**: Utiliza un fondo semitransparente oscuro (`#0c0b10` con `backdrop-filter: blur`) que maximiza el contraste de las imágenes del programa.
-* **Optimización de Legibilidad**: El visor cuenta con un `padding` reducido (`95vw` de ancho total) y las imágenes escalan hasta el 78% del alto de la pantalla (`78vh`), logrando la mayor legibilidad posible del contenido.
-* **Controles Ergonómicos**: 
-  * Los botones de "Siguiente" y "Anterior" fueron reubicados en la parte inferior para no superponerse ni estorbar a las esquinas inferiores del diseño del programa de mano.
-  * Botones con acento magenta (`rgba(233, 30, 99, 0.15)`) y transición fluida.
-  * Soporte completo para navegación mediante **teclado** (Flecha Izquierda, Flecha Derecha) y tecla **Esc** para cerrar.
-* **Carga Dinámica Secuencial**: Lee iterativamente los archivos webp desde `assets/programaMano/01.webp` al `10.webp` formateando automáticamente los ceros a la izquierda (padding).
+### Características del Visor Responsivo
+* **Adaptación Total 100dvh (Sin Scrollbars)**: Utiliza unidades de alto dinámico (`100dvh`) y ajuste `flexbox min-height: 0` con fondo translúcido (`rgba(4, 3, 8, 0.96)`) y `backdrop-filter: blur(15px)`, eliminando cualquier desbordamiento o barra de desplazamiento vertical en navegadores móviles (Safari e iOS/Android).
+* **Precarga de Imágenes en Memoria**: Al abrir el visor, JavaScript precarga de forma inmediata las 10 imágenes WebP (`assets/programaMano/01.webp` a `10.webp`) en memoria, garantizando cambios de página instantáneos y sin destellos blancos.
+* **Navegación Táctil y Ergonómica**:
+  * **Flechas Flotantes Laterales (`‹` y `›`)**: Botones con acento magenta translúcido situados en los bordes izquierdo y derecho a media altura para una navegación cómoda con una sola mano.
+  * **Píldora Flotante Inferior**: Indicador minimalista que muestra la página actual (`Página X de 10`), adaptado al área segura de la barra del navegador (`env(safe-area-inset-bottom)`).
+  * **Gestos Táctiles (Swipe)**: Permite cambiar de página deslizando el dedo lateralmente sobre la pantalla (*Swipe Left / Right*).
+  * **Navegación por Teclado**: Soporte para flechas del teclado (`ArrowLeft`, `ArrowRight`) y tecla `Escape` para cerrar el modal.
+* **Control de Caché Integrado**: Uso de sufijos de versión en recursos vinculados (`css/style.css?v=5.0`) para forzar la actualización inmediata en dispositivos móviles.
