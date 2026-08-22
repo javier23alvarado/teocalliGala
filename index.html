@@ -184,24 +184,16 @@
       <button id="btn-next-img" class="programa-nav-btn programa-nav-right" aria-label="Siguiente">&#8250;</button>
     </div>
 
-    <!-- Barra de Control Inferior Flotante -->
+  <!-- Indicador Flotante Inferior de Paginado -->
     <div class="programa-viewer-bottombar">
-      <button id="btn-prev-bottom" class="programa-bottom-btn" aria-label="Anterior">
-        <span>&#8592;</span> Anterior
-      </button>
-      
       <span id="programa-counter-text" class="programa-bottom-counter">Página 1 de 10</span>
-      
-      <button id="btn-next-bottom" class="programa-bottom-btn" aria-label="Siguiente">
-        Siguiente <span>&#8594;</span>
-      </button>
     </div>
 
   </div>
 
   <!-- Script de Gala Público -->
   <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
-  <script type="module" src="js/controllers/galaController.js?v=8.0"></script>
+  <script type="module" src="js/controllers/galaController.js?v=9.0"></script>
 
   <!-- Lógica Optimizada del Visor de Programa de Mano -->
   <script>
@@ -213,8 +205,6 @@
       const btnClosePrograma = document.getElementById("btn-close-programa");
       const btnPrevImg = document.getElementById("btn-prev-img");
       const btnNextImg = document.getElementById("btn-next-img");
-      const btnPrevBottom = document.getElementById("btn-prev-bottom");
-      const btnNextBottom = document.getElementById("btn-next-bottom");
       const programaImg = document.getElementById("programa-img");
       const programaCounterText = document.getElementById("programa-counter-text");
       const carouselContainer = document.getElementById("carousel-container");
@@ -298,8 +288,6 @@
       // Eventos de botones
       if (btnPrevImg) btnPrevImg.addEventListener("click", (e) => { e.stopPropagation(); goToPrevPage(); });
       if (btnNextImg) btnNextImg.addEventListener("click", (e) => { e.stopPropagation(); goToNextPage(); });
-      if (btnPrevBottom) btnPrevBottom.addEventListener("click", (e) => { e.stopPropagation(); goToPrevPage(); });
-      if (btnNextBottom) btnNextBottom.addEventListener("click", (e) => { e.stopPropagation(); goToNextPage(); });
 
       // Gestos Táctiles (Swipe Left / Right)
       let touchStartX = 0;
