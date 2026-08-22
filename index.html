@@ -46,7 +46,8 @@
           </div>
 
           <div class="gala-minimal-actions">
-            <button id="btn-obtener-acceso" class="btn gala-btn-minimal">Obtener Acceso</button>
+            <!-- <button id="btn-obtener-acceso" class="btn gala-btn-minimal">Obtener Acceso</button> -->
+            <button id="btn-programa-mano" class="btn gala-btn-minimal" style="background: linear-gradient(135deg, #E91E63 0%, #9c27b0 100%); color: #fff; box-shadow: 0 10px 20px -10px rgba(233, 30, 99, 0.6); transition: all 0.3s ease;">Programa de Mano</button>
           </div>
         </div>
       </div>
@@ -72,8 +73,8 @@
     </div>
   </footer>
 
-  <!-- Modal Reserva Gala Estático -->
-  <div id="modal-reserva-gala" class="gala-modal-overlay">
+  <!-- Modal Reserva Gala Estático (Oculto) -->
+  <div id="modal-reserva-gala" class="gala-modal-overlay" style="display: none !important;">
     <div class="gala-modal-content gala-glass-modal">
       <div class="gala-modal-header">
         <div>
@@ -162,9 +163,117 @@
     </div>
   </div>
 
+  <!-- Modal Programa de Mano -->
+  <div id="modal-programa-mano" class="gala-modal-overlay">
+    <div class="gala-modal-content gala-glass-modal" style="max-width: 95vw; width: 100%; padding: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; background: #0c0b10; border: 1px solid rgba(233, 30, 99, 0.4);">
+      
+      <button id="btn-close-programa" class="gala-modal-close" style="position: absolute; top: 10px; right: 15px; z-index: 20;">&times;</button>
+      
+      <!-- Contenedor de la Imagen (Sin botones encima) -->
+      <div id="carousel-container" style="width: 100%; display: flex; justify-content: center; align-items: center; margin-top: 30px;">
+        <img id="programa-img" src="assets/programaMano/01.webp" alt="Programa de Mano" style="max-height: 78vh; max-width: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.8);">
+      </div>
+
+      <!-- Controles Inferiores -->
+      <div id="carousel-controls" style="display: flex; align-items: center; justify-content: center; gap: 25px; margin-top: 15px; margin-bottom: 5px;">
+        <button id="btn-prev-img" style="background: rgba(233, 30, 99, 0.15); color: white; border: 1px solid rgba(233,30,99,0.5); border-radius: 50%; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: all 0.2s ease;">&#8592;</button>
+        
+        <div id="programa-indicator" style="color: #fff; font-size: 15px; font-weight: 600; letter-spacing: 1.5px; background: rgba(0,0,0,0.6); padding: 8px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);">Página 1 de 10</div>
+        
+        <button id="btn-next-img" style="background: rgba(233, 30, 99, 0.15); color: white; border: 1px solid rgba(233,30,99,0.5); border-radius: 50%; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: all 0.2s ease;">&#8594;</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Script de Gala Público -->
   <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
-  <script type="module" src="js/controllers/galaController.js?v=6.0"></script>
+  <script type="module" src="js/controllers/galaController.js?v=7.1"></script>
 
+  <!-- Lógica Aislada del Programa de Mano -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      console.log("Inicializando Programa de Mano...");
+      const btnProgramaMano = document.getElementById("btn-programa-mano");
+      const modalProgramaMano = document.getElementById("modal-programa-mano");
+      const btnClosePrograma = document.getElementById("btn-close-programa");
+      const btnPrevImg = document.getElementById("btn-prev-img");
+      const btnNextImg = document.getElementById("btn-next-img");
+      const programaImg = document.getElementById("programa-img");
+      const programaIndicator = document.getElementById("programa-indicator");
+
+      const NUM_PAGES = 10;
+      let currentPage = 1;
+
+      function updateProgramaView() {
+        if (!programaImg) return;
+        const pageStr = currentPage.toString().padStart(2, '0');
+        programaImg.src = `assets/programaMano/${pageStr}.webp`;
+        if (programaIndicator) {
+          programaIndicator.textContent = `Página ${currentPage} de ${NUM_PAGES}`;
+        }
+      }
+
+      if (btnProgramaMano && modalProgramaMano) {
+        btnProgramaMano.addEventListener("click", () => {
+          console.log("Abriendo Programa de Mano");
+          currentPage = 1;
+          updateProgramaView();
+          modalProgramaMano.classList.add("active");
+        });
+      } else {
+        console.error("No se encontró el botón o modal del Programa de Mano", { btnProgramaMano, modalProgramaMano });
+      }
+
+      if (btnClosePrograma) {
+        btnClosePrograma.addEventListener("click", () => {
+          modalProgramaMano.classList.remove("active");
+        });
+      }
+
+      if (modalProgramaMano) {
+        modalProgramaMano.addEventListener("click", (e) => {
+          if (e.target === modalProgramaMano) {
+            modalProgramaMano.classList.remove("active");
+          }
+        });
+      }
+
+      if (btnPrevImg) {
+        btnPrevImg.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (currentPage > 1) {
+            currentPage--;
+          } else {
+            currentPage = NUM_PAGES;
+          }
+          updateProgramaView();
+        });
+      }
+
+      if (btnNextImg) {
+        btnNextImg.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (currentPage < NUM_PAGES) {
+            currentPage++;
+          } else {
+            currentPage = 1;
+          }
+          updateProgramaView();
+        });
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (modalProgramaMano && modalProgramaMano.classList.contains("active")) {
+          if (e.key === "ArrowLeft" && btnPrevImg) {
+            btnPrevImg.click();
+          } else if (e.key === "ArrowRight" && btnNextImg) {
+            btnNextImg.click();
+          } else if (e.key === "Escape" && btnClosePrograma) {
+            btnClosePrograma.click();
+          }
+        }
+      });
+    });
+  </script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 
 **Proyecto**: Ballet Folclórico Compañía Teocalli  
 **Repositorio**: `javier23alvarado/teocalliGala`  
-**Última actualización**: 24 de Julio del 2026, 17:50 hrs (Implementación Limpieza Usuarios y Expiración Reservas)  
+**Última actualización**: 22 de Julio del 2026, 18:33 hrs (Estado de Producción Consolidado)  
 
 ---
 
@@ -175,43 +175,5 @@ python -m http.server 8000
 ### Despliegue en Firebase Hosting
 ```bash
 firebase login
-firebase deploy --only hosting
+firebase deploy
 ```
-
-### Configuración Multi-Sitio y Redireccionamiento (Savia vs Sabia)
-El proyecto cuenta con dos sitios de Hosting dentro del mismo proyecto Firebase (`teocalli-sabia-de-mi-tierra`):
-1. **teocalli-savia-de-mi-tierra** (Sitio principal): Donde se sirve toda la aplicación y los archivos estáticos.
-2. **teocalli-sabia-de-mi-tierra** (Sitio legacy): Funciona exclusivamente como un **Redirect 301**. Su carpeta pública es `empty-public` (una carpeta vacía) para garantizar que Firebase no sirva archivos estáticos y aplique la regla de redirección global definida en `firebase.json` hacia el sitio principal (`savia`).
-
----
-
-## 🔒 9. Validaciones y UX del Formulario de Usuarios
-
-El formulario de creación y edición de usuarios cuenta con un blindaje multicapa para prevenir errores de dedo y mantener la consistencia en Firestore:
-
-*   **Teléfono (Celular)**: Filtro en tiempo real que descarta cualquier carácter no numérico (letras, guiones, espacios) forzando exactamente 10 dígitos. Valida a nivel HTML5 (`minlength`, `maxlength`, `pattern`) y a nivel JavaScript antes del envío.
-*   **Correo Electrónico**: Autocorrección en el evento `blur` que remueve espacios residuales (frecuentes al copiar/pegar) y convierte todo el texto a minúsculas. Verificación estricta mediante Regex antes del envío.
-*   **Nombres y Apellidos**: Capitalización en tiempo real (*Title Case*) para garantizar uniformidad visual (ej. `juan pérez` → `Juan Pérez`).
-
----
-
-## 🧹 10. Limpieza de Datos y Expiración
-
-*   **Liberación Automática (10 Minutos)**: Toda reserva (`estado: 'reservado'`) generada por los usuarios desde la Taquilla Pública cuenta con un contador configurable mediante la variable global `RESERVATION_EXPIRATION_MINUTES` (por defecto 10 minutos). Una vez superado este límite de tiempo, la plataforma muestra de forma automática dichos asientos como `libre` permitiendo que otros clientes puedan comprarlos.
-*   **Cascada de Eliminación**: Al eliminar permanentemente a un usuario desde el panel del Administrador, el sistema verifica iterativamente todo el mapa de asientos buscando boletos asignados a ese usuario (`bailarin_id === uid_eliminado`) y, antes de finalizar, modifica el estado de los mismos directamente en Firestore, limpiando su ID, eliminando comentarios y devolviendo las butacas a estado `libre`.
-
----
-
-## 📖 11. Programa de Mano Interactivo
-
-Se ha reemplazado la taquilla de reserva temporalmente para habilitar un visor interactivo del **Programa de Mano** de la Gala. 
-
-### Características del Carrusel Visual
-* **Aislamiento Técnico**: El script del carrusel se ha implementado de forma nativa e independiente en `index.html` garantizando que siempre se ejecute, incluso en escenarios donde los módulos de Firebase fallen en inicializarse o estén en modo Demo.
-* **Diseño Inmersivo (Dark Theme)**: Utiliza un fondo semitransparente oscuro (`#0c0b10` con `backdrop-filter: blur`) que maximiza el contraste de las imágenes del programa.
-* **Optimización de Legibilidad**: El visor cuenta con un `padding` reducido (`95vw` de ancho total) y las imágenes escalan hasta el 78% del alto de la pantalla (`78vh`), logrando la mayor legibilidad posible del contenido.
-* **Controles Ergonómicos**: 
-  * Los botones de "Siguiente" y "Anterior" fueron reubicados en la parte inferior para no superponerse ni estorbar a las esquinas inferiores del diseño del programa de mano.
-  * Botones con acento magenta (`rgba(233, 30, 99, 0.15)`) y transición fluida.
-  * Soporte completo para navegación mediante **teclado** (Flecha Izquierda, Flecha Derecha) y tecla **Esc** para cerrar.
-* **Carga Dinámica Secuencial**: Lee iterativamente los archivos webp desde `assets/programaMano/01.webp` al `10.webp` formateando automáticamente los ceros a la izquierda (padding).
